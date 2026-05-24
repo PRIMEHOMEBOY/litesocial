@@ -23,8 +23,8 @@ export default function PostDetailPage() {
 
   const { data, fetchNextPage, hasNextPage } = useInfiniteQuery({
     queryKey: ['comments', postId],
-    queryFn: ({ pageParam }) => api.getComments(postId, pageParam as string | undefined) as Promise<{ comments: any[]; nextCursor: string | null }>,
-    initialPageParam: undefined,
+    queryFn: ({ pageParam }: { pageParam: string | undefined }) => api.getComments(postId, pageParam as string | undefined) as Promise<{ comments: any[]; nextCursor: string | null }>,
+    initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
   })
 

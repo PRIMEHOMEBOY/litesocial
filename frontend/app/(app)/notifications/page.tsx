@@ -29,8 +29,8 @@ export default function NotificationsPage() {
 
   const { data, isLoading, fetchNextPage, hasNextPage } = useInfiniteQuery({
     queryKey: ['notifications'],
-    queryFn: ({ pageParam }) => api.getNotifications(false, pageParam as string | undefined) as Promise<{ notifications: any[]; nextCursor: string | null }>,
-    initialPageParam: undefined,
+    queryFn: ({ pageParam }: { pageParam: string | undefined }) => api.getNotifications(false, pageParam as string | undefined) as Promise<{ notifications: any[]; nextCursor: string | null }>,
+    initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
   })
 

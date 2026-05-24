@@ -26,9 +26,9 @@ export default function ExplorePage() {
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery({
     queryKey: ['explore-posts', activeTag],
-    queryFn: ({ pageParam }) =>
+    queryFn: ({ pageParam }: { pageParam: string | undefined }) =>
       api.getExplore('24h', pageParam as string | undefined) as Promise<{ posts: any[]; nextCursor: string | null }>,
-    initialPageParam: undefined,
+    initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
   })
 

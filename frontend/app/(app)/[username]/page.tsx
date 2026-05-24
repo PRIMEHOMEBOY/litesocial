@@ -31,12 +31,12 @@ export default function ProfilePage() {
 
   const { data, fetchNextPage, hasNextPage } = useInfiniteQuery({
     queryKey: ['user-posts', username],
-    queryFn: ({ pageParam }) =>
+    queryFn: ({ pageParam }: { pageParam: string | undefined }) =>
       api.getUserPosts(username, pageParam as string | undefined) as Promise<{
         posts: any[]
         nextCursor: string | null
       }>,
-    initialPageParam: undefined,
+    initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     enabled: !!profile,
   })

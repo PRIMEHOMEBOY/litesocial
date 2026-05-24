@@ -15,8 +15,8 @@ export default function HomePage() {
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery({
     queryKey: ['feed', tab],
-    queryFn: ({ pageParam }) => api.getFeed(pageParam as string | undefined, tab) as Promise<{ posts: any[]; nextCursor: string | null }>,
-    initialPageParam: undefined,
+    queryFn: ({ pageParam }: { pageParam: string | undefined }) => api.getFeed(pageParam as string | undefined, tab) as Promise<{ posts: any[]; nextCursor: string | null }>,
+    initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
   })
 
