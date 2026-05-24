@@ -6,6 +6,8 @@ import { signToken, setAuthCookie } from '@/lib/auth'
 import { ok, err, handleError, generateToken } from '@/lib/api-helpers'
 import { RegisterSchema } from '@/lib/schemas'
 import { sendVerificationEmail } from '@/lib/email'
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
   try {

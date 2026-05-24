@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 // app/api/wallet/ltcprice/route.ts
 import { cacheGet, cacheSet } from '@/lib/redis'
 import { ok, handleError } from '@/lib/api-helpers'

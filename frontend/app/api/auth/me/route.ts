@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 // app/api/auth/me/route.ts
 import { getCurrentUser } from '@/lib/auth'
 import { ok, unauthorized } from '@/lib/api-helpers'

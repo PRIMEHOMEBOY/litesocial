@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 // app/api/posts/upload/route.ts
 import { NextRequest } from 'next/server'
 import { requireAuth } from '@/lib/auth'

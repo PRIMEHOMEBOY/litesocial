@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 // app/api/notifications/unread-count/route.ts
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'

@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 // app/api/explore/tags/route.ts
 import { prisma } from '@/lib/prisma'
 import { ok, handleError } from '@/lib/api-helpers'

@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 // app/api/tips/webhook/route.ts
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'

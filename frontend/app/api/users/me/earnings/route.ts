@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 // app/api/users/me/earnings/route.ts
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
