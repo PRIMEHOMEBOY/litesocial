@@ -1,0 +1,206 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                String      @id @default(cuid())
+  // Auth fields
+  email             String?     @unique
+  passwordHash      String?                        // null if wallet-only auth
+  ltcAddress        String?     @unique            // null until wallet linked
+  // Profile
+  displayName       String?
+  username          String      @unique
+  bio               String?     @db.Text
+  avatarIpfsHash    String?
+  bannerIpfsHash    String?
+  isVerified        Boolean     @default(false)
+  // Creator config
+  creatorTier       CreatorTier @default(NONE)
+  subscriptionPrice Decimal?    @db.Decimal(20, 8)
+  payoutAddress     String?
+  totalEarned       Decimal     @default(0) @db.Decimal(20, 8)
+  // Wallet auth nonce
+  nonce             String?
+  nonceExpiresAt    DateTime?
+  // Email verification
+  emailVerified     Boolean     @default(false)
+  emailVerifyToken  String?
+  // Password reset
+  resetToken        String?
+  resetTokenExpiry  DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  posts                 Post[]
+  comments              Comment[]
+  likes                 Like[]
+  followedBy            Follow[]       @relation("following")
+  following             Follow[]       @relation("follower")
+  subscriptionsGiven    Subscription[] @relation("subscriber")
+  subscriptionsReceived Subscription[] @relation("creator")
+  tipsGiven             Tip[]          @relation("tipper")
+  tipsReceived          Tip[]          @relation("recipient")
+  notifications         Notification[]
+  depositAddresses      DepositAddress[]
+
+  @@index([email])
+  @@index([ltcAddress])
+  @@index([username])
+}
+
+model Post {
+  id             String   @id @default(cuid())
+  author         User     @relation(fields: [authorId], references: [id])
+  authorId       String
+  ipfsHash       String?                      // CIDv1 — content on IPFS
+  content        String   @db.Text            // Stored in DB for non-IPFS fallback
+  contentPreview String?  @db.VarChar(200)
+  isPremium      Boolean  @default(false)
+  mediaHashes    String[]
+  tags           String[]
+  likesCount     Int      @default(0)
+  commentsCount  Int      @default(0)
+  tipsTotal      Decimal  @default(0) @db.Decimal(20, 8)
+  isDeleted      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  comments Comment[]
+  likes    Like[]
+  tips     Tip[]
+
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([tags])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  post      Post     @relation(fields: [postId], references: [id])
+  postId    String
+  author    User     @relation(fields: [authorId], references: [id])
+  authorId  String
+  content   String   @db.VarChar(500)
+  createdAt DateTime @default(now())
+
+  @@index([postId])
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  post      Post     @relation(fields: [postId], references: [id])
+  postId    String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  follower    User     @relation("follower", fields: [followerId], references: [id])
+  followerId  String
+  following   User     @relation("following", fields: [followingId], references: [id])
+  followingId String
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@index([followingId])
+}
+
+model Subscription {
+  id             String             @id @default(cuid())
+  subscriber     User               @relation("subscriber", fields: [subscriberId], references: [id])
+  subscriberId   String
+  creator        User               @relation("creator", fields: [creatorId], references: [id])
+  creatorId      String
+  status         SubscriptionStatus @default(PENDING)
+  tier           CreatorTier
+  priceAtTime    Decimal            @db.Decimal(20, 8)
+  depositAddress String
+  txHash         String?
+  confirmedAt    DateTime?
+  expiresAt      DateTime?
+  renewalCount   Int                @default(0)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@unique([subscriberId, creatorId])
+  @@index([depositAddress])
+  @@index([expiresAt])
+}
+
+model Tip {
+  id          String   @id @default(cuid())
+  post        Post     @relation(fields: [postId], references: [id])
+  postId      String
+  tipper      User     @relation("tipper", fields: [tipperId], references: [id])
+  tipperId    String
+  recipient   User     @relation("recipient", fields: [recipientId], references: [id])
+  recipientId String
+  amount      Decimal  @db.Decimal(20, 8)
+  txHash      String   @unique
+  confirmedAt DateTime @default(now())
+
+  @@index([postId])
+  @@index([recipientId])
+}
+
+model DepositAddress {
+  id        String   @id @default(cuid())
+  address   String   @unique
+  purpose   String
+  refId     String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  isUsed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  user      User             @relation(fields: [userId], references: [id])
+  userId    String
+  type      NotificationType
+  fromUser  String?
+  refId     String?
+  message   String
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId, isRead])
+}
+
+enum CreatorTier {
+  NONE
+  BASIC
+  PRO
+  ELITE
+}
+
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum NotificationType {
+  NEW_SUBSCRIBER
+  NEW_TIP
+  NEW_LIKE
+  NEW_COMMENT
+  NEW_FOLLOWER
+  SUBSCRIPTION_EXPIRING
+  PAYMENT_RECEIVED
+}

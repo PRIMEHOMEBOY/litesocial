@@ -1,0 +1,194 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String      @id @default(cuid())
+  // Auth — at least one of these is set
+  ltcAddress        String?     @unique          // Litecoin wallet address
+  email             String?     @unique          // Email address (for email auth)
+  passwordHash      String?                      // bcrypt hash (email auth only)
+  emailVerified     Boolean     @default(false)
+  emailVerifyToken  String?
+  passwordResetToken String?
+  passwordResetExpiry DateTime?
+
+  displayName       String?
+  username          String      @unique
+  bio               String?     @db.Text
+  avatarIpfsHash    String?
+  bannerIpfsHash    String?
+  isVerified        Boolean     @default(false)
+  creatorTier       CreatorTier @default(NONE)
+  subscriptionPrice Decimal?    @db.Decimal(20, 8)
+  payoutAddress     String?
+  totalEarned       Decimal     @default(0)      @db.Decimal(20, 8)
+  nonce             String      @default("")
+  nonceExpiry       DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  posts                 Post[]
+  comments              Comment[]
+  likes                 Like[]
+  followedBy            Follow[]       @relation("following")
+  following             Follow[]       @relation("follower")
+  subscriptionsGiven    Subscription[] @relation("subscriber")
+  subscriptionsReceived Subscription[] @relation("creator")
+  tipsGiven             Tip[]          @relation("tipper")
+  tipsReceived          Tip[]          @relation("recipient")
+  notifications         Notification[]
+}
+
+model Post {
+  id             String   @id @default(cuid())
+  author         User     @relation(fields: [authorId], references: [id])
+  authorId       String
+  ipfsHash       String
+  contentPreview String?  @db.VarChar(280)
+  isPremium      Boolean  @default(false)
+  mediaHashes    String[]
+  tags           String[]
+  likesCount     Int      @default(0)
+  commentsCount  Int      @default(0)
+  tipsTotal      Decimal  @default(0) @db.Decimal(20, 8)
+  isDeleted      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  comments Comment[]
+  likes    Like[]
+  tips     Tip[]
+
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([tags])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  post      Post     @relation(fields: [postId], references: [id])
+  postId    String
+  author    User     @relation(fields: [authorId], references: [id])
+  authorId  String
+  content   String   @db.VarChar(500)
+  createdAt DateTime @default(now())
+
+  @@index([postId])
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  post      Post     @relation(fields: [postId], references: [id])
+  postId    String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  follower    User     @relation("follower", fields: [followerId], references: [id])
+  followerId  String
+  following   User     @relation("following", fields: [followingId], references: [id])
+  followingId String
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@index([followingId])
+}
+
+model Subscription {
+  id             String             @id @default(cuid())
+  subscriber     User               @relation("subscriber", fields: [subscriberId], references: [id])
+  subscriberId   String
+  creator        User               @relation("creator", fields: [creatorId], references: [id])
+  creatorId      String
+  status         SubscriptionStatus @default(PENDING)
+  tier           CreatorTier
+  priceAtTime    Decimal            @db.Decimal(20, 8)
+  depositAddress String
+  txHash         String?
+  confirmedAt    DateTime?
+  expiresAt      DateTime?
+  renewalCount   Int                @default(0)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@unique([subscriberId, creatorId])
+  @@index([depositAddress])
+  @@index([expiresAt])
+}
+
+model Tip {
+  id          String   @id @default(cuid())
+  post        Post     @relation(fields: [postId], references: [id])
+  postId      String
+  tipper      User     @relation("tipper", fields: [tipperId], references: [id])
+  tipperId    String
+  recipient   User     @relation("recipient", fields: [recipientId], references: [id])
+  recipientId String
+  amount      Decimal  @db.Decimal(20, 8)
+  txHash      String   @unique
+  confirmedAt DateTime @default(now())
+
+  @@index([postId])
+  @@index([recipientId])
+}
+
+model DepositAddress {
+  id        String   @id @default(cuid())
+  address   String   @unique
+  purpose   String
+  refId     String
+  userId    String
+  isUsed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  user      User             @relation(fields: [userId], references: [id])
+  userId    String
+  type      NotificationType
+  fromUser  String?
+  refId     String?
+  message   String
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId, isRead])
+}
+
+enum CreatorTier {
+  NONE
+  BASIC
+  PRO
+  ELITE
+}
+
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum NotificationType {
+  NEW_SUBSCRIBER
+  NEW_TIP
+  NEW_LIKE
+  NEW_COMMENT
+  NEW_FOLLOWER
+  SUBSCRIPTION_EXPIRING
+  PAYMENT_RECEIVED
+}

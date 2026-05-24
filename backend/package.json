@@ -1,0 +1,40 @@
+{
+  "name": "litesocial-backend",
+  "version": "1.0.0",
+  "description": "LiteSocial Express.js API",
+  "main": "src/app.js",
+  "scripts": {
+    "dev": "nodemon src/app.js",
+    "start": "node src/app.js",
+    "build": "npx prisma migrate deploy && npx prisma generate",
+    "prisma:migrate": "npx prisma migrate dev",
+    "prisma:studio": "npx prisma studio"
+  },
+  "dependencies": {
+    "@pinata/sdk": "^2.1.0",
+    "bcryptjs": "^2.4.3",
+    "bull": "^4.12.2",
+    "cors": "^2.8.5",
+    "decimal.js": "^10.4.3",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.3",
+    "express-rate-limit": "^7.2.0",
+    "helmet": "^7.1.0",
+    "ioredis": "^5.3.2",
+    "jsonwebtoken": "^9.0.2",
+    "litecore-lib": "^0.15.2",
+    "multer": "^1.4.5-lts.1",
+    "node-fetch": "^3.3.2",
+    "resend": "^3.2.0",
+    "winston": "^3.13.0",
+    "zod": "^3.22.4",
+    "@prisma/client": "^5.13.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0",
+    "prisma": "^5.13.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
