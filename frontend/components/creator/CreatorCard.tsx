@@ -27,7 +27,7 @@ export function CreatorCard({ creator, compact = false }: { creator: any; compac
         <Link href={`/${creator.username}`}>
           <div className="flex items-center gap-1">
             <span className="text-sm font-semibold truncate">{creator.displayName || creator.username}</span>
-            {creator.isVerified && <span style={{ color: 'var(--accent-purple)', fontSize: 12 }}>✓</span>}
+            {creator.isVerified && <span style={{ color: 'var(--accent-blue)', fontSize: 12 }}>✓</span>}
           </div>
           {!compact && (
             <div className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-display)' }}>
@@ -45,8 +45,8 @@ export function CreatorCard({ creator, compact = false }: { creator: any; compac
         onClick={(e) => { e.stopPropagation(); followMutation.mutate() }}
         className="text-xs font-semibold px-3 py-1.5 rounded-full flex-shrink-0 transition-all"
         style={{
-          border: `1px solid ${following ? 'var(--border)' : 'var(--accent-purple)'}`,
-          color: following ? 'var(--text-secondary)' : 'var(--accent-purple)',
+          border: `1px solid ${following ? 'var(--border)' : 'var(--accent-blue)'}`,
+          color: following ? 'var(--text-secondary)' : 'var(--accent-blue)',
           background: 'transparent',
         }}>
         {following ? 'Following' : 'Follow'}

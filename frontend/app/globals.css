@@ -4,27 +4,28 @@
 @tailwind utilities;
 
 :root {
-  --bg-base:        #080808;
-  --bg-surface:     #0d0d0d;
-  --bg-elevated:    #111111;
-  --border:         #1a1a1a;
-  --border-hover:   #2a2a2a;
-  --text-primary:   #ffffff;
-  --text-secondary: #888888;
-  --text-muted:     #444444;
-  --accent-purple:  #9b63ff;
-  --accent-green:   #7ee8a2;
+  --bg-base:        #060a10;
+  --bg-surface:     #0b1018;
+  --bg-elevated:    #101820;
+  --border:         #1a2535;
+  --border-hover:   #243550;
+  --text-primary:   #f0f4ff;
+  --text-secondary: #7a90b0;
+  --text-muted:     #3a5070;
+  --accent-blue:    #345D9D;
+  --accent-blue-lt: #4a80d4;
+  --accent-blue-dk: #1e3d6e;
+  --accent-cyan:    #38bdf8;
+  --accent-green:   #4ade80;
   --accent-orange:  #f7931a;
-  --accent-red:     #ff6b9d;
+  --accent-red:     #f87171;
   --font-display:   'Space Mono', monospace;
   --font-body:      'DM Sans', sans-serif;
+  /* keep purple alias pointing to blue for backward compat */
+  --accent-purple:  #345D9D;
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
   height: 100%;
@@ -34,47 +35,37 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Scrollbar */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #222; border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: #333; }
+::-webkit-scrollbar-thumb { background: #1a2535; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #243550; }
 
-/* Selection */
-::selection { background: rgba(155, 99, 255, 0.3); }
+::selection { background: rgba(52, 93, 157, 0.35); }
 
-/* Focus visible */
 *:focus-visible {
-  outline: 2px solid var(--accent-purple);
+  outline: 2px solid var(--accent-blue-lt);
   outline-offset: 2px;
   border-radius: 4px;
 }
 
-/* Monospace for addresses and numbers */
 .font-display { font-family: var(--font-display); }
-.font-body { font-family: var(--font-body); }
+.font-body    { font-family: var(--font-body); }
 
-/* Hashtag and mention highlights */
-.text-hashtag { color: var(--accent-purple); cursor: pointer; }
+.text-hashtag  { color: var(--accent-cyan); cursor: pointer; }
 .text-hashtag:hover { text-decoration: underline; }
-.text-mention { color: var(--accent-green); cursor: pointer; }
+.text-mention  { color: var(--accent-green); cursor: pointer; }
 .text-mention:hover { text-decoration: underline; }
 
-/* LTC amounts */
 .ltc-amount { font-family: var(--font-display); color: var(--accent-green); }
-.ltc-orange  { font-family: var(--font-display); color: var(--accent-orange); }
+.ltc-orange { font-family: var(--font-display); color: var(--accent-orange); }
 
 @layer utilities {
   .bg-base     { background-color: var(--bg-base); }
   .bg-surface  { background-color: var(--bg-surface); }
   .bg-elevated { background-color: var(--bg-elevated); }
-  .text-secondary-custom { color: var(--text-secondary); }
-  .text-muted-custom     { color: var(--text-muted); }
-  .border-custom         { border-color: var(--border); }
-  .border-hover-custom   { border-color: var(--border-hover); }
 }
 
-/* ─── GLOBAL UTILITY CLASSES ────────────────────────────────────────────────── */
+/* ─── GLOBAL UTILITY CLASSES ─────────────────────────────────────────────── */
 .ls-input {
   width: 100%;
   background: var(--bg-elevated);
@@ -87,13 +78,13 @@ html, body {
   outline: none;
   transition: border-color 160ms;
 }
-.ls-input:focus { border-color: var(--accent-purple); }
+.ls-input:focus { border-color: var(--accent-blue-lt); }
 .ls-input::placeholder { color: var(--text-muted); }
 
 .ls-btn-primary {
   width: 100%;
   padding: 12px;
-  background: var(--accent-purple);
+  background: var(--accent-blue);
   color: #fff;
   border: none;
   border-radius: 12px;
@@ -101,13 +92,13 @@ html, body {
   font-weight: 600;
   font-size: 15px;
   cursor: pointer;
-  transition: opacity 180ms;
+  transition: all 180ms;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
 }
-.ls-btn-primary:hover:not(:disabled) { opacity: 0.85; }
+.ls-btn-primary:hover:not(:disabled) { background: var(--accent-blue-lt); }
 .ls-btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .ls-btn-outline {
@@ -127,7 +118,7 @@ html, body {
   justify-content: center;
   gap: 6px;
 }
-.ls-btn-outline:hover { border-color: var(--border-hover); color: var(--text-primary); }
+.ls-btn-outline:hover { border-color: var(--accent-blue-lt); color: var(--text-primary); }
 
 /* Mobile bottom nav padding */
 @media (max-width: 1279px) {

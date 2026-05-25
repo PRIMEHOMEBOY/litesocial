@@ -2,10 +2,10 @@
 import Image from 'next/image'
 
 const GRADIENTS = [
-  'linear-gradient(135deg,#9b63ff,#f7931a)',
-  'linear-gradient(135deg,#7ee8a2,#0891b2)',
-  'linear-gradient(135deg,#ff6b9d,#9b63ff)',
-  'linear-gradient(135deg,#f7931a,#fbbf24)',
+  'linear-gradient(135deg,#345D9D,#4a80d4)',
+  'linear-gradient(135deg,#1e3d6e,#345D9D)',
+  'linear-gradient(135deg,#345D9D,#38bdf8)',
+  'linear-gradient(135deg,#243550,#345D9D)',
 ]
 
 function getGradient(seed: string) {
