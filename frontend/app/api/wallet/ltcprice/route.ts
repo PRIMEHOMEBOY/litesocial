@@ -1,36 +1,52 @@
-export const dynamic = 'force-dynamic'
 // app/api/wallet/ltcprice/route.ts
-import { cacheGet, cacheSet } from '@/lib/redis'
-import { ok, handleError } from '@/lib/api-helpers'
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
-const CACHE_KEY = 'ltc:price'
-const CACHE_TTL = 60 // seconds
+import { ok, handleError } from '@/lib/api-helpers'
 
 export async function GET() {
   try {
-    // Try cache first
-    const cached = await cacheGet(CACHE_KEY)
-    if (cached) return ok(JSON.parse(cached))
+    // Try CoinGecko first
+    const res = await fetch(
+      'https://api.coingecko.com/api/v3/simple/price?ids=litecoin&vs_currencies=usd&include_24hr_change=true',
+      {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'PrimeDesk/1.0',
+        },
+        signal: AbortSignal.timeout(8000),
+        cache: 'no-store',
+      }
+    )
 
-    // Fetch from CoinGecko
-    const apiKey = process.env.COINGECKO_API_KEY
-    const url = `https://api.coingecko.com/api/v3/simple/price?ids=litecoin&vs_currencies=usd&include_24hr_change=true${apiKey ? `&x_cg_demo_api_key=${apiKey}` : ''}`
+    if (res.ok) {
+      const data = await res.json()
+      const price = data?.litecoin?.usd
+      const change24h = data?.litecoin?.usd_24h_change
 
-    const res = await fetch(url, { next: { revalidate: 60 } })
-    if (!res.ok) throw new Error('CoinGecko fetch failed')
+      if (price) {
+        return ok({ price: Number(price.toFixed(2)), change24h: Number((change24h || 0).toFixed(2)) })
+      }
+    }
 
-    const data = await res.json()
-    const price = data.litecoin?.usd || 0
-    const change24h = data.litecoin?.usd_24h_change || 0
+    // Fallback: CryptoCompare (no API key needed)
+    const fallback = await fetch(
+      'https://min-api.cryptocompare.com/data/price?fsym=LTC&tsyms=USD',
+      { signal: AbortSignal.timeout(6000), cache: 'no-store' }
+    )
+    if (fallback.ok) {
+      const d = await fallback.json()
+      if (d?.USD) return ok({ price: Number(d.USD.toFixed(2)), change24h: 0 })
+    }
 
-    const result = { price, change24h }
-    await cacheSet(CACHE_KEY, JSON.stringify(result), CACHE_TTL)
-
-    return ok(result)
+    return ok({ price: null, change24h: 0 })
   } catch (error) {
-    // Return last cached price or fallback
-    const cached = await cacheGet(CACHE_KEY).catch(() => null)
-    if (cached) return ok(JSON.parse(cached))
-    return ok({ price: 0, change24h: 0 })
+    // Last resort fallback
+    try {
+      const res = await fetch('https://min-api.cryptocompare.com/data/price?fsym=LTC&tsyms=USD', { cache: 'no-store' })
+      const d = await res.json()
+      if (d?.USD) return ok({ price: Number(d.USD.toFixed(2)), change24h: 0 })
+    } catch {}
+    return ok({ price: null, change24h: 0 })
   }
 }

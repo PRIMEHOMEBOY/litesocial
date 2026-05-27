@@ -1,58 +1,82 @@
 'use client'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api-client'
 import { useAuthStore } from '@/store/useAuthStore'
 import { PostCard } from '@/components/feed/PostCard'
 import { SubscribeModal } from '@/components/subscription/SubscribeModal'
-import { Avatar } from '@/components/ui/Avatar'
 import { useState } from 'react'
 import { formatLtc, truncateAddress, getIpfsUrl } from '@/lib/utils'
 import Image from 'next/image'
 import Link from 'next/link'
 
 const TIER_LABELS: Record<string,string> = { BASIC:'Basic', PRO:'Pro', ELITE:'Elite', NONE:'' }
-const TIER_COLORS: Record<string,string> = { BASIC:'#7a90b0', PRO:'var(--accent-blue-lt)', ELITE:'var(--accent-orange)', NONE:'' }
+const TIER_COLORS: Record<string,string> = {
+  BASIC:'#7a90b0', PRO:'var(--accent-blue-lt)', ELITE:'var(--accent-orange)', NONE:''
+}
 
 type PostPage = { posts: any[]; nextCursor: string | null }
 
 function FollowListModal({ username, type, onClose }: { username: string; type: 'followers'|'following'; onClose: () => void }) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['follow-list', username, type],
-    queryFn: () => fetch(`/api/users/${username}/${type}`, { credentials: 'include' }).then(r => r.json()) as Promise<{ users: any[] }>,
+    queryFn: async () => {
+      const res = await fetch(`/api/users/${encodeURIComponent(username)}/${type}`, { credentials: 'include' })
+      if (!res.ok) throw new Error(`Failed: ${res.status}`)
+      return res.json() as Promise<{ users: any[] }>
+    },
+    retry: 1,
   })
+
   const users = data?.users ?? []
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+    <div style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
       onClick={e => e.target === e.currentTarget && onClose()}>
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 20, width: '100%', maxWidth: 420, maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: '1px solid var(--border)' }}>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 700 }}>{type === 'followers' ? 'Followers' : 'Following'}</h2>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 700 }}>
+            {type === 'followers' ? 'Followers' : 'Following'}
+          </h2>
           <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 14 }}>✕</button>
         </div>
         <div style={{ overflowY: 'auto', flex: 1 }}>
-          {isLoading && <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)' }}>Loading…</div>}
-          {users.map(u => (
-            <Link key={u.id} href={`/${u.username}`} onClick={onClose}
-              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: '1px solid var(--border)', textDecoration: 'none', transition: 'background 140ms' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(52,93,157,0.06)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-              <Avatar name={u.displayName || u.username} src={getIpfsUrl(u.avatarIpfsHash)} size={42} />
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {u.displayName || u.username}
-                  {u.isVerified && <img src="/ltc-logo.svg" alt="✓" style={{ width: 14, height: 14 }} />}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>@{u.username}</div>
-              </div>
-            </Link>
-          ))}
-          {!isLoading && users.length === 0 && (
-            <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)', fontSize: 14 }}>
+          {isLoading && (
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid var(--accent-blue)', borderTopColor: 'transparent', animation: 'spin 700ms linear infinite', margin: '0 auto 12px' }} />
+              Loading…
+            </div>
+          )}
+          {error && (
+            <div style={{ padding: 32, textAlign: 'center', color: 'var(--accent-red)', fontSize: 13 }}>
+              Failed to load. Please try again.
+            </div>
+          )}
+          {!isLoading && !error && users.length === 0 && (
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 14 }}>
               {type === 'followers' ? 'No followers yet' : 'Not following anyone yet'}
             </div>
           )}
+          {users.map(u => (
+            <Link key={u.id} href={`/${u.username}`} onClick={onClose}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 20px', borderBottom: '1px solid var(--border)', textDecoration: 'none', transition: 'background 140ms' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(52,93,157,0.06)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+              <div style={{ width: 44, height: 44, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: 'linear-gradient(135deg,#345D9D,#4a80d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, color: '#fff' }}>
+                {getIpfsUrl(u.avatarIpfsHash)
+                  ? <img src={getIpfsUrl(u.avatarIpfsHash)!} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : (u.displayName || u.username)[0].toUpperCase()
+                }
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  {u.displayName || u.username}
+                  {u.isVerified && <img src="/ltc-logo.svg" alt="✓" style={{ width: 14, height: 14 }} />}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>@{u.username} · {u._count?.followedBy ?? 0} followers</div>
+              </div>
+            </Link>
+          ))}
         </div>
       </div>
     </div>
@@ -87,18 +111,16 @@ export default function ProfilePage() {
   const posts = data?.pages.flatMap((p) => p.posts) ?? []
   const isOwnProfile = me?.username === username
 
-  if (isLoading) {
-    return (
-      <div style={{ animationName: 'pulse', animationDuration: '2s', animationIterationCount: 'infinite' }}>
-        <div style={{ height: 144, background: 'var(--bg-elevated)' }} />
-        <div style={{ padding: 20 }}>
-          <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--border)', marginBottom: 12 }} />
-          <div style={{ height: 20, width: 160, borderRadius: 6, background: 'var(--border)', marginBottom: 8 }} />
-          <div style={{ height: 14, width: 260, borderRadius: 6, background: 'var(--border)' }} />
-        </div>
+  if (isLoading) return (
+    <div>
+      <div style={{ height: 144, background: 'var(--bg-elevated)' }} />
+      <div style={{ padding: 20 }}>
+        <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'var(--border)', marginBottom: 12 }} />
+        <div style={{ height: 20, width: 160, borderRadius: 6, background: 'var(--border)', marginBottom: 8 }} />
+        <div style={{ height: 14, width: 260, borderRadius: 6, background: 'var(--border)' }} />
       </div>
-    )
-  }
+    </div>
+  )
 
   if (!profile) return <div style={{ textAlign: 'center', padding: 80, color: 'var(--text-muted)' }}>User not found</div>
 
@@ -115,23 +137,28 @@ export default function ProfilePage() {
         {bannerUrl && <Image src={bannerUrl} alt="Banner" fill style={{ objectFit: 'cover' }} />}
       </div>
 
-      {/* Profile info */}
       <div style={{ padding: '0 20px 20px', borderBottom: '1px solid var(--border)' }}>
-        {/* Avatar + actions row */}
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: -36, marginBottom: 12 }}>
-          {/* Avatar — fixed size, no crop */}
-          <div style={{ width: 80, height: 80, borderRadius: '50%', border: '3px solid var(--bg-base)', overflow: 'hidden', flexShrink: 0, background: avatarUrl ? undefined : 'linear-gradient(135deg,#345D9D,#4a80d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: '#fff' }}>
+        {/* Avatar row */}
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: -40, marginBottom: 14 }}>
+          {/* Avatar — proper circle, no crop */}
+          <div style={{
+            width: 80, height: 80, borderRadius: '50%',
+            border: '3px solid var(--bg-base)',
+            overflow: 'hidden', flexShrink: 0,
+            background: 'linear-gradient(135deg,#345D9D,#4a80d4)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 30, fontWeight: 700, color: '#fff',
+          }}>
             {avatarUrl
-              ? <Image src={avatarUrl} alt={profile.displayName} width={80} height={80} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+              ? <img src={avatarUrl} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
               : (profile.displayName?.[0] || profile.username[0]).toUpperCase()
             }
           </div>
 
-          {/* Action buttons */}
           {!isOwnProfile && (
-            <div style={{ display: 'flex', gap: 8, paddingTop: 40 }}>
+            <div style={{ display: 'flex', gap: 8, paddingTop: 44 }}>
               <button onClick={() => followMutation.mutate()}
-                style={{ padding: '8px 18px', borderRadius: 12, fontSize: 13, fontWeight: 600, cursor: 'pointer', background: profile.isFollowing ? 'transparent' : 'var(--accent-blue)', border: `1px solid ${profile.isFollowing ? 'var(--border)' : 'var(--accent-blue)'}`, color: profile.isFollowing ? 'var(--text-secondary)' : '#fff', transition: 'all 160ms' }}>
+                style={{ padding: '8px 18px', borderRadius: 12, fontSize: 13, fontWeight: 600, cursor: 'pointer', background: profile.isFollowing ? 'transparent' : 'var(--accent-blue)', border: `1px solid ${profile.isFollowing ? 'var(--border)' : 'var(--accent-blue)'}`, color: profile.isFollowing ? 'var(--text-secondary)' : '#fff' }}>
                 {profile.isFollowing ? 'Following ✓' : 'Follow'}
               </button>
               {profile.subscriptionPrice && (
@@ -144,42 +171,53 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {/* Name */}
-        <h1 style={{ fontSize: 20, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          {profile.displayName || profile.username}
-          {profile.isVerified && <img src="/ltc-logo.svg" alt="verified" style={{ width: 20, height: 20 }} />}
-          {tierLabel && (
-            <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 6, background: `${tierColor}18`, color: tierColor, border: `1px solid ${tierColor}40` }}>{tierLabel}</span>
+        {/* Name + checkmark beside username (like Twitter) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 2 }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>{profile.displayName || profile.username}</h1>
+          {/* LTC checkmark right next to name */}
+          {profile.isVerified && (
+            <img src="/ltc-logo.svg" alt="verified" style={{ width: 20, height: 20, flexShrink: 0 }} />
           )}
-        </h1>
+          {tierLabel && (
+            <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 6, background: `${tierColor}18`, color: tierColor, border: `1px solid ${tierColor}40` }}>
+              {tierLabel}
+            </span>
+          )}
+        </div>
 
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: 'var(--font-display)', marginTop: 2 }}>
+        {/* Username handle */}
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: 'var(--font-display)', marginBottom: 8 }}>
           @{profile.username}
           {profile.ltcAddress && <span style={{ color: 'var(--text-muted)', marginLeft: 8 }}>· {truncateAddress(profile.ltcAddress)}</span>}
         </p>
 
-        {profile.bio && <p style={{ fontSize: 14, marginTop: 10, lineHeight: 1.6, color: 'var(--text-secondary)' }}>{profile.bio}</p>}
+        {profile.bio && <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--text-secondary)', marginBottom: 12 }}>{profile.bio}</p>}
 
-        {/* Stats */}
-        <div style={{ display: 'flex', gap: 20, marginTop: 14, flexWrap: 'wrap' }}>
+        {/* Clickable stats */}
+        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
           <div>
             <span style={{ fontWeight: 700, fontSize: 15 }}>{profile._count?.posts ?? 0}</span>
             <span style={{ fontSize: 13, color: 'var(--text-secondary)', marginLeft: 4 }}>Posts</span>
           </div>
-          {/* Clickable followers */}
-          <div onClick={() => setFollowModal('followers')} style={{ cursor: 'pointer' }}>
+          <div onClick={() => setFollowModal('followers')}
+            style={{ cursor: 'pointer' }}
+            onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
+            onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}>
             <span style={{ fontWeight: 700, fontSize: 15 }}>{(profile._count?.followedBy ?? 0).toLocaleString()}</span>
             <span style={{ fontSize: 13, color: 'var(--text-secondary)', marginLeft: 4 }}>Followers</span>
           </div>
-          {/* Clickable following */}
-          <div onClick={() => setFollowModal('following')} style={{ cursor: 'pointer' }}>
+          <div onClick={() => setFollowModal('following')}
+            style={{ cursor: 'pointer' }}
+            onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
+            onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}>
             <span style={{ fontWeight: 700, fontSize: 15 }}>{profile._count?.following ?? 0}</span>
             <span style={{ fontSize: 13, color: 'var(--text-secondary)', marginLeft: 4 }}>Following</span>
           </div>
-          {/* Earnings — only show if allowed */}
-          {showEarnings && (
+          {showEarnings && parseFloat(profile.totalEarned || 0) > 0 && (
             <div>
-              <span style={{ fontWeight: 700, fontSize: 15, fontFamily: 'var(--font-display)', color: 'var(--accent-green)' }}>{parseFloat(profile.totalEarned || 0).toFixed(2)}</span>
+              <span style={{ fontWeight: 700, fontSize: 15, fontFamily: 'var(--font-display)', color: 'var(--accent-green)' }}>
+                {parseFloat(profile.totalEarned).toFixed(2)}
+              </span>
               <span style={{ fontSize: 13, color: 'var(--text-secondary)', marginLeft: 4 }}>LTC earned</span>
             </div>
           )}
@@ -192,8 +230,7 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* Posts */}
-      {posts.map((post) => <PostCard key={post.id} post={post} />)}
+      {posts.map(post => <PostCard key={post.id} post={post} />)}
 
       {hasNextPage && (
         <div style={{ padding: 16, display: 'flex', justifyContent: 'center' }}>
@@ -206,7 +243,7 @@ export default function ProfilePage() {
       {posts.length === 0 && !isLoading && (
         <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>📝</div>
-          <p style={{ fontSize: 14 }}>No posts yet</p>
+          <p>No posts yet</p>
         </div>
       )}
 

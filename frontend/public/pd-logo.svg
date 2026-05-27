@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect width="100" height="100" rx="22" fill="#0d1a2e"/>
+  <rect width="100" height="100" rx="22" fill="url(#g)"/>
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a3a6e"/>
+      <stop offset="100%" style="stop-color:#0d1a2e"/>
+    </linearGradient>
+  </defs>
+  <!-- Stylized P lettermark -->
+  <text x="50" y="72" text-anchor="middle" font-family="Georgia, serif" font-size="68" font-weight="700" fill="url(#tg)">P</text>
+  <defs>
+    <linearGradient id="tg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4a80d4"/>
+      <stop offset="100%" style="stop-color:#7eb8f7"/>
+    </linearGradient>
+  </defs>
+  <!-- Bottom accent line -->
+  <rect x="28" y="80" width="44" height="3" rx="1.5" fill="#345D9D" opacity="0.7"/>
+</svg>
