@@ -1,11 +1,10 @@
 'use client'
-// app/(app)/layout.tsx
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/useAuthStore'
-import { Sidebar } from '@/components/layout/Sidebar'
 import { MobileNav } from '@/components/layout/MobileNav'
 import { RightPanel } from '@/components/layout/RightPanel'
+import { TopBar } from '@/components/layout/TopBar'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isHydrated } = useAuthStore()
@@ -17,9 +16,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (!isHydrated) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-base)' }}>
-        <div className="w-10 h-10 rounded-full border-2 border-t-transparent animate-spin"
-          style={{ borderColor: 'var(--accent-purple)', borderTopColor: 'transparent' }} />
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)' }}>
+        <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid var(--accent-blue)', borderTopColor: 'transparent', animation: 'spin 700ms linear infinite' }} />
       </div>
     )
   }
@@ -27,12 +25,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (!user) return null
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg-base)' }}>
-      <Sidebar />
-      <main style={{ flex: 1, overflowY: 'auto', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>
-        {children}
-      </main>
-      <RightPanel />
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg-base)' }}>
+      {/* Top bar with logo + nav (replaces sidebar on all screens) */}
+      <TopBar />
+
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        {/* Main content — full width (no sidebar) */}
+        <main style={{ flex: 1, overflowY: 'auto', borderRight: '1px solid var(--border)' }}>
+          <div style={{ maxWidth: 680, margin: '0 auto', paddingBottom: 80 }}>
+            {children}
+          </div>
+        </main>
+
+        {/* Right panel — desktop only */}
+        <RightPanel />
+      </div>
+
       <MobileNav />
     </div>
   )

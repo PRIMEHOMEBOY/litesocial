@@ -27,6 +27,7 @@ model User {
   creatorTier       CreatorTier @default(NONE)
   subscriptionPrice Decimal?    @db.Decimal(20, 8)
   payoutAddress     String?
+  showEarnings      Boolean     @default(true)
   totalEarned       Decimal     @default(0) @db.Decimal(20, 8)
   // Wallet auth nonce
   nonce             String?

@@ -1,4 +1,3 @@
-export const dynamic = 'force-dynamic'
 // app/api/users/me/route.ts
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
@@ -30,7 +29,8 @@ export async function PATCH(req: NextRequest) {
         id: true, email: true, emailVerified: true, username: true,
         displayName: true, bio: true, avatarIpfsHash: true, bannerIpfsHash: true,
         ltcAddress: true, isVerified: true, creatorTier: true,
-        subscriptionPrice: true, payoutAddress: true, totalEarned: true,
+        subscriptionPrice: true, payoutAddress: true,
+        showEarnings: true, totalEarned: true,
       },
     })
 

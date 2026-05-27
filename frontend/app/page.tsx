@@ -78,7 +78,7 @@ export default function LandingPage() {
         <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', position: 'sticky', top: 0, zIndex: 50, background: 'rgba(8,9,15,0.8)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#345D9D,#4a80d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, color: '#fff', ...S.mono }}>LS</div>
-            <span style={{ fontWeight: 700, fontSize: 16, ...S.mono }}>LiteSocial</span>
+            <span style={{ fontWeight: 700, fontSize: 16, ...S.mono }}>PrimeDesk</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>Built on Litecoin</span>
@@ -225,7 +225,7 @@ export default function LandingPage() {
         <footer style={{ borderTop: '1px solid rgba(255,255,255,0.07)', padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 30, height: 30, borderRadius: 8, background: 'linear-gradient(135deg,#345D9D,#4a80d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', ...S.mono }}>LS</div>
-            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', ...S.mono }}>LiteSocial — Built on Litecoin</span>
+            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', ...S.mono }}>PrimeDesk — Built on Litecoin</span>
           </div>
           <div style={{ display: 'flex', gap: 20, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
             <span>0% platform fees</span>

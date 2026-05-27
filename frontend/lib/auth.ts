@@ -64,6 +64,7 @@ export async function getCurrentUser() {
       subscriptionPrice: true,
       payoutAddress: true,
       totalEarned: true,
+      showEarnings: true,
       createdAt: true,
     },
   })

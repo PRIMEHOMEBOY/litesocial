@@ -53,6 +53,7 @@ export const UpdateUserSchema = z.object({
   payoutAddress: z.string().min(26).max(64).optional().or(z.literal('')),
   subscriptionPrice: z.number().min(0.01).max(100).optional(),
   creatorTier: z.enum(['NONE', 'BASIC', 'PRO', 'ELITE']).optional(),
+  showEarnings: z.boolean().optional(),
 })
 
 export const CommentSchema = z.object({

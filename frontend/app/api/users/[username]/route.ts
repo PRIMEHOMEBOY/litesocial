@@ -1,4 +1,3 @@
-export const dynamic = 'force-dynamic'
 // app/api/users/[username]/route.ts
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
@@ -14,7 +13,7 @@ export async function GET(req: NextRequest, { params }: { params: { username: st
         id: true, username: true, displayName: true, bio: true,
         avatarIpfsHash: true, bannerIpfsHash: true, ltcAddress: true,
         isVerified: true, creatorTier: true, subscriptionPrice: true,
-        totalEarned: true, createdAt: true,
+        totalEarned: true, showEarnings: true, createdAt: true,
         _count: {
           select: {
             posts: { where: { isDeleted: false } },

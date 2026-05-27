@@ -96,6 +96,19 @@ export const api = {
   // Wallet
   getLtcPrice: () => request<{ price: number; change24h: number }>('/api/wallet/ltcprice'),
 
+
+  // Repost
+  repost: (postId: string) =>
+    request('/api/posts/repost', { method: 'POST', body: JSON.stringify({ postId }) }),
+
+  // Creator tier
+  initiateCreatorTier: (tier: string) =>
+    request('/api/creator-tier/initiate', { method: 'POST', body: JSON.stringify({ tier }) }),
+
+  // Followers / following lists
+  getFollowers: (username: string) => request<any>(`/api/users/${username}/followers`),
+  getFollowing: (username: string) => request<any>(`/api/users/${username}/following`),
+
   // IPFS upload (direct from client to Pinata)
   uploadMedia: async (file: File): Promise<{ hash: string; url: string }> => {
     const form = new FormData()

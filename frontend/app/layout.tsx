@@ -4,11 +4,11 @@ import './globals.css'
 import { Providers } from './providers'
 
 export const metadata: Metadata = {
-  title: 'LiteSocial — Web3 Social on Litecoin',
-  description: 'Decentralized creator economy platform built on Litecoin. Earn LTC directly from subscribers with zero platform fee.',
+  title: 'PrimeDesk — Web3 Social on Litecoin',
+  description: 'Decentralized creator economy on Litecoin. Earn LTC directly from subscribers with zero platform fee.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   openGraph: {
-    title: 'LiteSocial',
+    title: 'PrimeDesk',
     description: 'Decentralized social media on Litecoin',
     type: 'website',
   },
