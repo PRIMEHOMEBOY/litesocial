@@ -1,5 +1,4 @@
 'use client'
-// app/(auth)/login/page.tsx
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -17,12 +16,11 @@ export default function LoginPage() {
   const router = useRouter()
   const setUser = useAuthStore((s) => s.setUser)
   const [serverError, setServerError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<FormData>({ resolver: zodResolver(LoginSchema) })
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
+    resolver: zodResolver(LoginSchema),
+  })
 
   const onSubmit = async (data: FormData) => {
     setServerError('')
@@ -37,58 +35,61 @@ export default function LoginPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: 'var(--font-display)' }}>Sign in</h1>
-      <p className="text-sm mb-8" style={{ color: 'var(--text-secondary)' }}>
-        No account?{' '}
-        <Link href="/register" style={{ color: 'var(--accent-purple)' }}>Create one free</Link>
+      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, fontFamily: 'var(--font-display)' }}>Sign in</h1>
+      <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 24 }}>
+        No account? <Link href="/register" style={{ color: 'var(--accent-blue-lt)' }}>Create one free</Link>
       </p>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <FormField label="Email" error={errors.email?.message}>
-          <input
-            {...register('email')}
-            type="email"
-            placeholder="you@email.com"
-            className="ls-input"
-            autoComplete="email"
-          />
+          <input {...register('email')} type="email" placeholder="you@email.com" className="ls-input" autoComplete="email" />
         </FormField>
 
         <FormField label="Password" error={errors.password?.message}>
-          <input
-            {...register('password')}
-            type="password"
-            placeholder="Your password"
-            className="ls-input"
-            autoComplete="current-password"
-          />
+          <div style={{ position: 'relative' }}>
+            <input
+              {...register('password')}
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Your password"
+              className="ls-input"
+              autoComplete="current-password"
+              style={{ paddingRight: 44 }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(v => !v)}
+              style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--text-muted)', lineHeight: 1 }}
+              title={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? '🙈' : '👁️'}
+            </button>
+          </div>
         </FormField>
 
-        <div className="flex justify-end">
-          <Link href="/forgot-password" className="text-xs" style={{ color: 'var(--text-muted)' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: -6 }}>
+          <Link href="/forgot-password" style={{ fontSize: 12, color: 'var(--text-muted)', textDecoration: 'none' }}>
             Forgot password?
           </Link>
         </div>
 
         {serverError && (
-          <div className="text-sm px-3 py-2 rounded-lg"
-            style={{ background: 'rgba(255,107,157,0.1)', color: 'var(--accent-red)', border: '1px solid rgba(255,107,157,0.2)' }}>
+          <div style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(248,113,113,0.1)', color: 'var(--accent-red)', border: '1px solid rgba(248,113,113,0.2)', fontSize: 13 }}>
             {serverError}
           </div>
         )}
 
-        <button type="submit" disabled={isSubmitting} className="ls-btn-primary mt-1">
+        <button type="submit" disabled={isSubmitting} className="ls-btn-primary">
           {isSubmitting ? 'Signing in…' : 'Sign In →'}
         </button>
       </form>
 
-      <div className="flex items-center gap-3 my-6">
-        <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
-        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>or</span>
-        <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0' }}>
+        <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>or</span>
+        <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
       </div>
 
-      <Link href="/connect-wallet" className="ls-btn-outline flex items-center justify-center gap-2">
+      <Link href="/connect-wallet" className="ls-btn-outline" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, textDecoration: 'none' }}>
         🔗 Sign in with LTC Wallet
       </Link>
     </>

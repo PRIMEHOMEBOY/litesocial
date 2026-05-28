@@ -1,15 +1,13 @@
 // components/ui/Avatar.tsx
-import Image from 'next/image'
-
 const GRADIENTS = [
   'linear-gradient(135deg,#345D9D,#4a80d4)',
   'linear-gradient(135deg,#1e3d6e,#345D9D)',
-  'linear-gradient(135deg,#345D9D,#38bdf8)',
-  'linear-gradient(135deg,#243550,#345D9D)',
+  'linear-gradient(135deg,#243550,#4a80d4)',
+  'linear-gradient(135deg,#0d1a2e,#345D9D)',
 ]
 
 function getGradient(seed: string) {
-  const idx = seed.charCodeAt(0) % GRADIENTS.length
+  const idx = (seed.charCodeAt(0) || 0) % GRADIENTS.length
   return GRADIENTS[idx]
 }
 
@@ -26,23 +24,39 @@ export function Avatar({ src, name, size = 40, className = '' }: AvatarProps) {
 
   if (src) {
     return (
-      <div style={{ width: size, height: size, borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }} className={className}>
-        <Image src={src} alt={name} width={size} height={size} className="object-cover w-full h-full" />
+      <div
+        style={{
+          width: size, height: size, borderRadius: '50%',
+          overflow: 'hidden', flexShrink: 0, display: 'block',
+        }}
+        className={className}
+      >
+        <img
+          src={src}
+          alt={name}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          onError={(e) => {
+            // Fallback to initial on load error
+            const parent = e.currentTarget.parentElement
+            if (parent) {
+              parent.style.background = gradient
+              e.currentTarget.style.display = 'none'
+            }
+          }}
+        />
       </div>
     )
   }
 
   return (
     <div
-      className={`flex items-center justify-center font-bold flex-shrink-0 ${className}`}
+      className={className}
       style={{
-        width: size,
-        height: size,
-        borderRadius: '50%',
-        background: gradient,
-        fontSize: Math.floor(size * 0.38),
-        color: '#fff',
-        fontFamily: 'var(--font-display)',
+        width: size, height: size, borderRadius: '50%',
+        background: gradient, flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: Math.floor(size * 0.38), color: '#fff',
+        fontFamily: 'var(--font-display)', fontWeight: 700,
       }}>
       {initial}
     </div>

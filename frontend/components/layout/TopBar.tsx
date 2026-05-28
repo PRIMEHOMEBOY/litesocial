@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react'
 export function TopBar() {
   const pathname = usePathname()
   const { user, logout } = useAuthStore()
-  const { ltcPrice, fetchPrice } = useWalletStore()
+  const { fetchPrice } = useWalletStore()
   const [menuOpen, setMenuOpen] = useState(false)
   useEffect(() => { fetchPrice() }, [fetchPrice])
 
@@ -51,16 +51,6 @@ export function TopBar() {
 
         {/* Right: LTC price + notification bell + avatar */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {/* Live LTC price chip */}
-          {ltcPrice && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
-              <img src="/ltc-logo.svg" alt="LTC" style={{ width: 16, height: 16 }} />
-              <span style={{ fontFamily: 'var(--font-display)', fontSize: 12, fontWeight: 700, color: 'var(--accent-green)' }}>
-                ${ltcPrice.toFixed(2)}
-              </span>
-            </div>
-          )}
-
           {/* Notification bell */}
           <Link href="/notifications" style={{ position: 'relative', textDecoration: 'none', fontSize: 20, lineHeight: 1 }}>
             🔔

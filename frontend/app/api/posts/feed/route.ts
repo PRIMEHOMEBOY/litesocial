@@ -1,5 +1,5 @@
-export const dynamic = 'force-dynamic'
 // app/api/posts/feed/route.ts
+export const dynamic = 'force-dynamic'
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
@@ -12,24 +12,25 @@ export async function GET(req: NextRequest) {
     const tab = req.nextUrl.searchParams.get('tab') || 'for-you'
     const limit = 20
 
-    // Get followed users
-    const follows = await prisma.follow.findMany({
-      where: { followerId: me.id },
-      select: { followingId: true },
-    })
-    const followingIds = follows.map((f) => f.followingId)
+    let whereClause: any = { isDeleted: false }
 
-    const whereClause =
-      tab === 'following'
-        ? { authorId: { in: followingIds }, isDeleted: false }
-        : {
-            isDeleted: false,
-            OR: [
-              { authorId: { in: followingIds } },
-              { likesCount: { gt: 10 } },
-              { tipsTotal: { gt: 0 } },
-            ],
-          }
+    if (tab === 'following') {
+      // Following tab: only posts from followed users
+      const follows = await prisma.follow.findMany({
+        where: { followerId: me.id },
+        select: { followingId: true },
+      })
+      const followingIds = follows.map((f) => f.followingId)
+
+      if (followingIds.length === 0) {
+        // User follows nobody — still show all public posts so feed isn't empty
+        whereClause = { isDeleted: false, isPremium: false }
+      } else {
+        whereClause = { isDeleted: false, authorId: { in: followingIds } }
+      }
+    }
+    // "For You" tab: show ALL posts (everyone, not just following)
+    // This ensures new users always have content
 
     const posts = await prisma.post.findMany({
       where: whereClause,
@@ -38,13 +39,17 @@ export async function GET(req: NextRequest) {
       cursor: cursor ? { id: cursor } : undefined,
       include: {
         author: {
-          select: { id: true, username: true, displayName: true, avatarIpfsHash: true, isVerified: true, creatorTier: true, subscriptionPrice: true },
+          select: {
+            id: true, username: true, displayName: true,
+            avatarIpfsHash: true, isVerified: true,
+            creatorTier: true, subscriptionPrice: true,
+          },
         },
         likes: { where: { userId: me.id }, select: { id: true } },
       },
     })
 
-    // Get active subscriptions to determine which premium posts are unlocked
+    // Check which creators current user is subscribed to
     const creatorIds = [...new Set(posts.map((p) => p.authorId))]
     const subs = await prisma.subscription.findMany({
       where: { subscriberId: me.id, creatorId: { in: creatorIds }, status: 'ACTIVE' },

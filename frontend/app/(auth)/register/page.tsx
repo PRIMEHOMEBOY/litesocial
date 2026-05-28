@@ -1,5 +1,4 @@
 'use client'
-// app/(auth)/register/page.tsx
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -18,12 +17,11 @@ export default function RegisterPage() {
   const setUser = useAuthStore((s) => s.setUser)
   const [serverError, setServerError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<FormData>({ resolver: zodResolver(RegisterSchema) })
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
+    resolver: zodResolver(RegisterSchema),
+  })
 
   const onSubmit = async (data: FormData) => {
     setServerError('')
@@ -37,89 +35,78 @@ export default function RegisterPage() {
     }
   }
 
-  if (success) {
-    return (
-      <div className="text-center py-4">
-        <div className="text-5xl mb-4">🎉</div>
-        <h2 className="text-xl font-bold mb-2" style={{ fontFamily: 'var(--font-display)' }}>Account Created!</h2>
-        <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
-          Check your email to verify. Redirecting to your feed…
-        </p>
-      </div>
-    )
-  }
+  if (success) return (
+    <div style={{ textAlign: 'center', padding: '12px 0' }}>
+      <div style={{ fontSize: 52, marginBottom: 12 }}>🎉</div>
+      <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, fontFamily: 'var(--font-display)' }}>Account Created!</h2>
+      <p style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Check your email to verify. Redirecting…</p>
+    </div>
+  )
 
   return (
     <>
-      <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: 'var(--font-display)' }}>Create account</h1>
-      <p className="text-sm mb-8" style={{ color: 'var(--text-secondary)' }}>
-        Already have one?{' '}
-        <Link href="/login" style={{ color: 'var(--accent-purple)' }}>Sign in</Link>
+      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, fontFamily: 'var(--font-display)' }}>Create account</h1>
+      <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 24 }}>
+        Already have one? <Link href="/login" style={{ color: 'var(--accent-blue-lt)' }}>Sign in</Link>
       </p>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-        <div className="grid grid-cols-2 gap-3">
+      <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <FormField label="Username" error={errors.username?.message}>
-            <input
-              {...register('username')}
-              placeholder="satoshi_lite"
-              className="ls-input"
-              autoComplete="username"
-            />
+            <input {...register('username')} placeholder="satoshi_lite" className="ls-input" autoComplete="username" />
           </FormField>
           <FormField label="Display Name" error={errors.displayName?.message}>
-            <input
-              {...register('displayName')}
-              placeholder="Satoshi Lite"
-              className="ls-input"
-              autoComplete="name"
-            />
+            <input {...register('displayName')} placeholder="Satoshi Lite" className="ls-input" autoComplete="name" />
           </FormField>
         </div>
 
         <FormField label="Email" error={errors.email?.message}>
-          <input
-            {...register('email')}
-            type="email"
-            placeholder="you@email.com"
-            className="ls-input"
-            autoComplete="email"
-          />
+          <input {...register('email')} type="email" placeholder="you@email.com" className="ls-input" autoComplete="email" />
         </FormField>
 
         <FormField label="Password" error={errors.password?.message}>
-          <input
-            {...register('password')}
-            type="password"
-            placeholder="Min 8 chars, 1 uppercase, 1 number"
-            className="ls-input"
-            autoComplete="new-password"
-          />
+          <div style={{ position: 'relative' }}>
+            <input
+              {...register('password')}
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Min 8 chars, 1 uppercase, 1 number"
+              className="ls-input"
+              autoComplete="new-password"
+              style={{ paddingRight: 44 }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(v => !v)}
+              style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--text-muted)', lineHeight: 1 }}
+              title={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? '🙈' : '👁️'}
+            </button>
+          </div>
         </FormField>
 
         {serverError && (
-          <div className="text-sm px-3 py-2 rounded-lg"
-            style={{ background: 'rgba(255,107,157,0.1)', color: 'var(--accent-red)', border: '1px solid rgba(255,107,157,0.2)' }}>
+          <div style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(248,113,113,0.1)', color: 'var(--accent-red)', border: '1px solid rgba(248,113,113,0.2)', fontSize: 13 }}>
             {serverError}
           </div>
         )}
 
-        <button type="submit" disabled={isSubmitting} className="ls-btn-primary mt-2">
+        <button type="submit" disabled={isSubmitting} className="ls-btn-primary" style={{ marginTop: 4 }}>
           {isSubmitting ? 'Creating account…' : 'Create Account →'}
         </button>
       </form>
 
-      <div className="flex items-center gap-3 my-6">
-        <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
-        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>or</span>
-        <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0' }}>
+        <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>or</span>
+        <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
       </div>
 
-      <Link href="/connect-wallet" className="ls-btn-outline flex items-center justify-center gap-2">
+      <Link href="/connect-wallet" className="ls-btn-outline" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, textDecoration: 'none' }}>
         🔗 Continue with LTC Wallet Only
       </Link>
 
-      <p className="text-xs text-center mt-6" style={{ color: 'var(--text-muted)' }}>
+      <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', marginTop: 16 }}>
         You can link a Litecoin wallet later from Settings.
       </p>
     </>

@@ -1,63 +1,46 @@
 'use client'
-// components/subscription/SubscribeModal.tsx
-import { useState, useEffect } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
-import { api } from '@/lib/api-client'
+import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Modal } from '@/components/ui/Modal'
+import { RecaptchaModal } from '@/components/ui/RecaptchaModal'
 import { formatLtc } from '@/lib/utils'
-import { QRCodeSVG } from 'qrcode.react'
+import { useAuthStore } from '@/store/useAuthStore'
 
-type Stage = 'init' | 'awaiting' | 'confirmed'
+type Stage = 'info' | 'recaptcha' | 'confirmed'
 
 export function SubscribeModal({ creator, onClose }: { creator: any; onClose: () => void }) {
-  const [stage, setStage] = useState<Stage>('init')
-  const [depositInfo, setDepositInfo] = useState<any>(null)
-  const [copied, setCopied] = useState(false)
-  const [countdown, setCountdown] = useState(172800) // 48h
+  const [stage, setStage] = useState<Stage>('info')
+  const [showRecaptcha, setShowRecaptcha] = useState(false)
+  const qc = useQueryClient()
+  const me = useAuthStore((s) => s.user)
 
-  const initMutation = useMutation({
-    mutationFn: () => api.initiateSubscription(creator.username),
-    onSuccess: (data: any) => { setDepositInfo(data); setStage('awaiting') },
-  })
-
-  // Poll subscription status
-  const { data: statusData } = useQuery({
-    queryKey: ['sub-status', creator.username],
-    queryFn: () => api.getSubscriptionStatus(creator.username) as Promise<any>,
-    refetchInterval: stage === 'awaiting' ? 5000 : false,
-    enabled: stage === 'awaiting',
-  })
-
-  useEffect(() => {
-    if (statusData?.isSubscribed) setStage('confirmed')
-  }, [statusData])
-
-  useEffect(() => {
-    if (stage !== 'awaiting') return
-    const t = setInterval(() => setCountdown((c) => Math.max(0, c - 1)), 1000)
-    return () => clearInterval(t)
-  }, [stage])
-
-  const fmt = (n: number) => String(n).padStart(2, '0')
-  const h = Math.floor(countdown / 3600)
-  const m = Math.floor((countdown % 3600) / 60)
-  const s = countdown % 60
-
-  const copy = () => {
-    navigator.clipboard.writeText(depositInfo?.depositAddress || '')
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  const handleVerified = async () => {
+    setShowRecaptcha(false)
+    // Mark subscription as active server-side (free for now via recaptcha)
+    try {
+      await fetch('/api/subscriptions/free-activate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ creatorUsername: creator.username }),
+      })
+    } catch (e) {
+      console.error('Subscription activation error:', e)
+    }
+    qc.invalidateQueries({ queryKey: ['user', creator.username] })
+    qc.invalidateQueries({ queryKey: ['feed'] })
+    setStage('confirmed')
   }
 
   if (stage === 'confirmed') return (
-    <Modal title="Subscription Active 🎉" onClose={onClose}>
-      <div className="text-center py-6">
-        <div className="text-6xl mb-4">🎉</div>
-        <h2 className="text-xl font-bold mb-2" style={{ fontFamily: 'var(--font-display)', color: 'var(--accent-green)' }}>
-          Payment Confirmed!
-        </h2>
-        <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
-          Your subscription to <strong>{creator.displayName || creator.username}</strong> is now active for 30 days.
+    <Modal title="Subscribed! 🎉" onClose={onClose}>
+      <div style={{ textAlign: 'center', padding: '16px 0' }}>
+        <div style={{ fontSize: 60, marginBottom: 16 }}>🎉</div>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 700, color: 'var(--accent-green)', marginBottom: 8 }}>
+          You're Subscribed!
+        </div>
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 20, lineHeight: 1.6 }}>
+          You now have full access to <strong>{creator.displayName || creator.username}</strong>'s premium content.
         </p>
         <button onClick={onClose} className="ls-btn-primary" style={{ background: 'var(--accent-green)', color: '#000' }}>
           View Premium Content →
@@ -67,79 +50,53 @@ export function SubscribeModal({ creator, onClose }: { creator: any; onClose: ()
   )
 
   return (
-    <Modal title={`Subscribe to ${creator.displayName || creator.username}`} onClose={onClose}>
-      {stage === 'init' && (
-        <div className="flex flex-col gap-4">
-          <div className="p-4 rounded-xl text-center" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
-            <div className="text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Monthly price</div>
-            <div className="text-3xl font-bold" style={{ fontFamily: 'var(--font-display)', color: 'var(--accent-orange)' }}>
+    <>
+      <Modal title={`Subscribe to ${creator.displayName || creator.username}`} onClose={onClose}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Price info */}
+          <div style={{ padding: '14px 16px', borderRadius: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border)', textAlign: 'center' }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>Monthly subscription</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: 'var(--accent-orange)' }}>
               {formatLtc(creator.subscriptionPrice || 0)}
             </div>
-            <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>0% platform fee · paid directly to creator</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>0% platform fee · paid directly to creator</div>
           </div>
-          <ul className="text-sm flex flex-col gap-2" style={{ color: 'var(--text-secondary)' }}>
-            {['Unlock all premium posts', 'Direct LTC payment — no card needed', 'Auto-detected after 3 confirmations (~7.5 min)', 'Cancel anytime — subscription expires naturally'].map((f) => (
-              <li key={f} className="flex gap-2"><span style={{ color: 'var(--accent-green)' }}>✓</span>{f}</li>
+
+          {/* What you get */}
+          <ul style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {[
+              'Unlock all premium posts',
+              'Direct LTC payment — no card needed',
+              'Cancel anytime — subscription expires naturally',
+              'Support your favourite creator directly',
+            ].map(f => (
+              <li key={f} style={{ display: 'flex', gap: 8, fontSize: 13, color: 'var(--text-secondary)', alignItems: 'flex-start', listStyle: 'none' }}>
+                <span style={{ color: 'var(--accent-green)', flexShrink: 0 }}>✓</span>{f}
+              </li>
             ))}
           </ul>
-          {initMutation.isError && (
-            <p className="text-sm" style={{ color: 'var(--accent-red)' }}>{(initMutation.error as any)?.message}</p>
-          )}
-          <button onClick={() => initMutation.mutate()} disabled={initMutation.isPending} className="ls-btn-primary" style={{ background: 'var(--accent-orange)' }}>
-            {initMutation.isPending ? 'Generating address…' : 'Proceed to Payment →'}
+
+          <button
+            onClick={() => setShowRecaptcha(true)}
+            className="ls-btn-primary"
+            style={{ background: 'var(--accent-orange)', fontSize: 15, fontWeight: 700 }}>
+            Proceed to Payment →
           </button>
+
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.6 }}>
+            Clicking proceed will verify you're human, then activate your subscription.
+          </div>
         </div>
+      </Modal>
+
+      {showRecaptcha && (
+        <RecaptchaModal
+          title={`Subscribe to ${creator.displayName || creator.username}`}
+          subtitle="Complete the check to activate your subscription"
+          onVerified={handleVerified}
+          onClose={() => setShowRecaptcha(false)}
+        />
       )}
-
-      {stage === 'awaiting' && depositInfo && (
-        <div className="flex flex-col items-center gap-4">
-          <div className="text-center">
-            <div className="text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Send exactly</div>
-            <div className="text-3xl font-bold" style={{ fontFamily: 'var(--font-display)', color: 'var(--accent-orange)' }}>
-              {formatLtc(depositInfo.amount)}
-            </div>
-          </div>
-
-          {/* QR Code */}
-          <div className="p-4 rounded-2xl" style={{ background: '#fff' }}>
-            <QRCodeSVG value={depositInfo.ltcUri} size={160} />
-          </div>
-
-          {/* Address */}
-          <div className="w-full">
-            <div className="text-xs mb-1.5" style={{ color: 'var(--text-secondary)' }}>Deposit address</div>
-            <div
-              onClick={copy}
-              className="flex items-center gap-2 p-3 rounded-xl cursor-pointer transition-all"
-              style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
-              <span className="flex-1 text-xs break-all" style={{ fontFamily: 'var(--font-display)' }}>
-                {depositInfo.depositAddress}
-              </span>
-              <span className="text-sm flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
-                {copied ? '✓' : '📋'}
-              </span>
-            </div>
-          </div>
-
-          {/* Countdown */}
-          <div className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-display)' }}>
-            Expires in <span style={{ color: 'var(--accent-red)' }}>{fmt(h)}:{fmt(m)}:{fmt(s)}</span>
-          </div>
-
-          {/* Polling indicator */}
-          <div className="flex items-center gap-2 w-full p-3 rounded-xl"
-            style={{ background: 'rgba(126,232,162,0.06)', border: '1px solid rgba(126,232,162,0.2)' }}>
-            <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--accent-green)' }} />
-            <span className="text-xs" style={{ color: 'var(--accent-green)' }}>
-              Watching for payment · auto-confirms after 3 blocks (~7.5 min)
-            </span>
-          </div>
-
-          <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
-            Open this page in Litewallet or Exodus to pre-fill the payment. You can close this modal — payment is tracked server-side.
-          </p>
-        </div>
-      )}
-    </Modal>
+    </>
   )
 }
