@@ -9,6 +9,7 @@ import { api } from '@/lib/api-client'
 import { useAuthStore } from '@/store/useAuthStore'
 import { LoginSchema } from '@/lib/schemas'
 import { FormField } from '@/components/ui/FormField'
+import { EyeOpenIcon, EyeClosedIcon } from '@/components/ui/Icons'
 
 type FormData = z.infer<typeof LoginSchema>
 
@@ -35,14 +36,23 @@ export default function LoginPage() {
 
   return (
     <>
-      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, fontFamily: 'var(--font-display)' }}>Sign in</h1>
+      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, fontFamily: 'var(--font-display)' }}>
+        Sign in
+      </h1>
       <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 24 }}>
-        No account? <Link href="/register" style={{ color: 'var(--accent-blue-lt)' }}>Create one free</Link>
+        No account?{' '}
+        <Link href="/register" style={{ color: 'var(--accent-blue-lt)' }}>Create one free</Link>
       </p>
 
       <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <FormField label="Email" error={errors.email?.message}>
-          <input {...register('email')} type="email" placeholder="you@email.com" className="ls-input" autoComplete="email" />
+          <input
+            {...register('email')}
+            type="email"
+            placeholder="you@email.com"
+            className="ls-input"
+            autoComplete="email"
+          />
         </FormField>
 
         <FormField label="Password" error={errors.password?.message}>
@@ -53,15 +63,35 @@ export default function LoginPage() {
               placeholder="Your password"
               className="ls-input"
               autoComplete="current-password"
-              style={{ paddingRight: 44 }}
+              style={{ paddingRight: 48 }}
             />
             <button
               type="button"
               onClick={() => setShowPassword(v => !v)}
-              style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--text-muted)', lineHeight: 1 }}
+              style={{
+                position: 'absolute', right: 0, top: 0, bottom: 0,
+                width: 46, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'var(--bg-elevated)',
+                borderLeft: '1px solid var(--border)',
+                borderRadius: '0 10px 10px 0',
+                cursor: 'pointer', border: 'none',
+                color: 'var(--text-secondary)',
+                transition: 'color 160ms, background 160ms',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.color = '#4a80d4'
+                e.currentTarget.style.background = 'rgba(74,128,212,0.12)'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.color = 'var(--text-secondary)'
+                e.currentTarget.style.background = 'var(--bg-elevated)'
+              }}
               title={showPassword ? 'Hide password' : 'Show password'}
             >
-              {showPassword ? '🙈' : '👁️'}
+              {showPassword
+                ? <EyeClosedIcon size={20} color="currentColor" strokeWidth={2} />
+                : <EyeOpenIcon size={20} color="currentColor" strokeWidth={2} />
+              }
             </button>
           </div>
         </FormField>

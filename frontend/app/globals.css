@@ -124,3 +124,38 @@ html, body {
 @media (max-width: 1279px) {
   main { padding-bottom: 72px; }
 }
+
+/* ── LIGHT MODE ───────────────────────────────────────────────── */
+.light-mode {
+  --bg-base:        #f0f4fa;
+  --bg-surface:     #ffffff;
+  --bg-elevated:    #e8eef7;
+  --border:         #d0daea;
+  --border-hover:   #b0c4de;
+  --text-primary:   #0d1a2e;
+  --text-secondary: #4a6080;
+  --text-muted:     #8090a8;
+  --accent-blue:    #345D9D;
+  --accent-blue-lt: #2d5090;
+  --accent-blue-dk: #1e3d6e;
+  --accent-cyan:    #1a6fa8;
+  --accent-green:   #16a34a;
+  --accent-orange:  #c2720a;
+  --accent-red:     #dc2626;
+}
+
+.light-mode body,
+.light-mode html {
+  background: var(--bg-base);
+  color: var(--text-primary);
+}
+
+.light-mode .ls-input {
+  background: var(--bg-surface);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+.light-mode .ls-btn-outline {
+  background: var(--bg-surface);
+}
