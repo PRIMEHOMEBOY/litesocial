@@ -1,4 +1,4 @@
-# LiteSocial — Deployment Guide
+# Primedesk — Deployment Guide
 
 Decentralized Social-Fi platform on Litecoin. Email + wallet auth, IPFS content, on-chain subscriptions and tips.
 
