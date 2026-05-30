@@ -1,14 +1,18 @@
-// app/api/users/[username]/route.ts
+export const dynamic = 'force-dynamic'
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import { ok, notFound, handleError } from '@/lib/api-helpers'
 
-export async function GET(req: NextRequest, context: { params: Promise<{ username: string }> }) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ username: string }> }
+) {
   try {
+    const { username } = await params
     const me = await getCurrentUser()
     const user = await prisma.user.findUnique({
-      where: { username: (await context.params).username },
+      where: { username },
       select: {
         id: true, username: true, displayName: true, bio: true,
         avatarIpfsHash: true, bannerIpfsHash: true, ltcAddress: true,
@@ -26,13 +30,16 @@ export async function GET(req: NextRequest, context: { params: Promise<{ usernam
 
     if (!user) return notFound('User')
 
-    // Check if current user follows this person
     let isFollowing = false
     let isSubscribed = false
     if (me) {
       const [follow, sub] = await Promise.all([
-        prisma.follow.findUnique({ where: { followerId_followingId: { followerId: me.id, followingId: user.id } } }),
-        prisma.subscription.findUnique({ where: { subscriberId_creatorId: { subscriberId: me.id, creatorId: user.id } } }),
+        prisma.follow.findUnique({
+          where: { followerId_followingId: { followerId: me.id, followingId: user.id } }
+        }),
+        prisma.subscription.findUnique({
+          where: { subscriberId_creatorId: { subscriberId: me.id, creatorId: user.id } }
+        }),
       ])
       isFollowing = !!follow
       isSubscribed = sub?.status === 'ACTIVE'

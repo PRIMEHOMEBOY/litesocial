@@ -1,19 +1,22 @@
-// app/api/users/[username]/posts/route.ts
+export const dynamic = 'force-dynamic'
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import { ok, notFound, handleError } from '@/lib/api-helpers'
 
-export async function GET(req: NextRequest, context: { params: Promise<{ username: string }> }) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ username: string }> }
+) {
   try {
+    const { username } = await params
     const me = await getCurrentUser()
     const cursor = req.nextUrl.searchParams.get('cursor')
     const limit = 20
 
-    const author = await prisma.user.findUnique({ where: { username: (await context.params).username } })
+    const author = await prisma.user.findUnique({ where: { username } })
     if (!author) return notFound('User')
 
-    // Check if viewer is subscribed to this creator
     let isSubscribed = false
     if (me) {
       const sub = await prisma.subscription.findUnique({
@@ -40,16 +43,13 @@ export async function GET(req: NextRequest, context: { params: Promise<{ usernam
     const hasMore = posts.length > limit
     const items = posts.slice(0, limit).map((post) => ({
       ...post,
-      isLiked: post.likes ? post.likes.length > 0 : false,
+      isLiked: Array.isArray(post.likes) ? post.likes.length > 0 : false,
       likes: undefined,
       isLocked: post.isPremium && !isSubscribed && !isOwnProfile,
       content: post.isPremium && !isSubscribed && !isOwnProfile ? post.contentPreview : post.content,
     }))
 
-    return ok({
-      posts: items,
-      nextCursor: hasMore ? items[items.length - 1]?.id : null,
-    })
+    return ok({ posts: items, nextCursor: hasMore ? items[items.length - 1]?.id : null })
   } catch (error) {
     return handleError(error)
   }

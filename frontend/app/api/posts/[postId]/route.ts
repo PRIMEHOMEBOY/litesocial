@@ -1,15 +1,19 @@
-// app/api/posts/[postId]/route.ts
+export const dynamic = 'force-dynamic'
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import { ok, notFound, handleError } from '@/lib/api-helpers'
 
-export async function GET(req: NextRequest, context: { params: Promise<{ postId: string }> }) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ postId: string }> }
+) {
   try {
+    const { postId } = await params
     const me = await getCurrentUser()
 
     const post = await prisma.post.findUnique({
-      where: { id: (await context.params).postId, isDeleted: false },
+      where: { id: postId, isDeleted: false },
       include: {
         author: {
           select: {
@@ -45,26 +49,22 @@ export async function GET(req: NextRequest, context: { params: Promise<{ postId:
       isLocked,
       content: isLocked ? post.contentPreview : post.content,
     })
-  } catch (error) {
-    return handleError(error)
-  }
+  } catch (error) { return handleError(error) }
 }
 
-export async function DELETE(req: NextRequest, context: { params: Promise<{ postId: string }> }) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ postId: string }> }
+) {
   try {
+    const { postId } = await params
     const me = await getCurrentUser()
     if (!me) return notFound('Post')
 
-    const post = await prisma.post.findUnique({ where: { id: (await context.params).postId } })
+    const post = await prisma.post.findUnique({ where: { id: postId } })
     if (!post || post.authorId !== me.id) return notFound('Post')
 
-    await prisma.post.update({
-      where: { id: (await context.params).postId },
-      data: { isDeleted: true },
-    })
-
+    await prisma.post.update({ where: { id: postId }, data: { isDeleted: true } })
     return ok({ deleted: true })
-  } catch (error) {
-    return handleError(error)
-  }
+  } catch (error) { return handleError(error) }
 }

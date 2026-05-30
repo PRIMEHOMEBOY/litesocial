@@ -1,12 +1,15 @@
-// app/api/users/[username]/following/route.ts
 export const dynamic = 'force-dynamic'
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { ok, notFound, handleError } from '@/lib/api-helpers'
 
-export async function GET(req: NextRequest, context: { params: Promise<{ username: string }> }) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ username: string }> }
+) {
   try {
-    const user = await prisma.user.findUnique({ where: { username: (await context.params).username } })
+    const { username } = await params
+    const user = await prisma.user.findUnique({ where: { username } })
     if (!user) return notFound('User')
 
     const follows = await prisma.follow.findMany({

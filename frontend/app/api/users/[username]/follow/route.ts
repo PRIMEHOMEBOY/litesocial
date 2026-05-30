@@ -1,13 +1,17 @@
-// app/api/users/[username]/follow/route.ts
+export const dynamic = 'force-dynamic'
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 import { ok, err, handleError } from '@/lib/api-helpers'
 
-export async function POST(req: NextRequest, context: { params: Promise<{ username: string }> }) {
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ username: string }> }
+) {
   try {
+    const { username } = await params
     const me = await requireAuth()
-    const target = await prisma.user.findUnique({ where: { username: (await context.params).username } })
+    const target = await prisma.user.findUnique({ where: { username } })
     if (!target) return err('User not found', 404)
     if (target.id === me.id) return err('Cannot follow yourself', 400)
 
@@ -21,8 +25,6 @@ export async function POST(req: NextRequest, context: { params: Promise<{ userna
     }
 
     await prisma.follow.create({ data: { followerId: me.id, followingId: target.id } })
-
-    // Create notification
     await prisma.notification.create({
       data: {
         userId: target.id,
@@ -33,7 +35,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ userna
     })
 
     return ok({ following: true })
-  } catch (error) {
-    return handleError(error)
-  }
+  } catch (error) { return handleError(error) }
 }
