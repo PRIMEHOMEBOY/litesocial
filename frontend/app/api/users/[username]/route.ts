@@ -4,11 +4,11 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import { ok, notFound, handleError } from '@/lib/api-helpers'
 
-export async function GET(req: NextRequest, { params }: { params: { username: string } }) {
+export async function GET(req: NextRequest, context: { params: Promise<{ username: string }> }) {
   try {
     const me = await getCurrentUser()
     const user = await prisma.user.findUnique({
-      where: { username: params.username },
+      where: { username: (await context.params).username },
       select: {
         id: true, username: true, displayName: true, bio: true,
         avatarIpfsHash: true, bannerIpfsHash: true, ltcAddress: true,

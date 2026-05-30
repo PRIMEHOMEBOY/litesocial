@@ -1,14 +1,13 @@
-export const dynamic = 'force-dynamic'
 // app/api/users/[username]/follow/route.ts
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 import { ok, err, handleError } from '@/lib/api-helpers'
 
-export async function POST(req: NextRequest, { params }: { params: { username: string } }) {
+export async function POST(req: NextRequest, context: { params: Promise<{ username: string }> }) {
   try {
     const me = await requireAuth()
-    const target = await prisma.user.findUnique({ where: { username: params.username } })
+    const target = await prisma.user.findUnique({ where: { username: (await context.params).username } })
     if (!target) return err('User not found', 404)
     if (target.id === me.id) return err('Cannot follow yourself', 400)
 

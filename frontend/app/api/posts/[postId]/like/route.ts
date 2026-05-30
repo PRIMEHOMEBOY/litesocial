@@ -1,14 +1,13 @@
-export const dynamic = 'force-dynamic'
 // app/api/posts/[postId]/like/route.ts
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 import { ok, handleError } from '@/lib/api-helpers'
 
-export async function POST(req: NextRequest, { params }: { params: { postId: string } }) {
+export async function POST(req: NextRequest, context: { params: Promise<{ postId: string }> }) {
   try {
     const me = await requireAuth()
-    const { postId } = params
+    const { postId } = await context.params
 
     const existing = await prisma.like.findUnique({
       where: { postId_userId: { postId, userId: me.id } },

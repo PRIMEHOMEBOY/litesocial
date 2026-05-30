@@ -1,17 +1,16 @@
-export const dynamic = 'force-dynamic'
 // app/api/users/[username]/posts/route.ts
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import { ok, notFound, handleError } from '@/lib/api-helpers'
 
-export async function GET(req: NextRequest, { params }: { params: { username: string } }) {
+export async function GET(req: NextRequest, context: { params: Promise<{ username: string }> }) {
   try {
     const me = await getCurrentUser()
     const cursor = req.nextUrl.searchParams.get('cursor')
     const limit = 20
 
-    const author = await prisma.user.findUnique({ where: { username: params.username } })
+    const author = await prisma.user.findUnique({ where: { username: (await context.params).username } })
     if (!author) return notFound('User')
 
     // Check if viewer is subscribed to this creator

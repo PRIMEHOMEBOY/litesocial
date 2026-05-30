@@ -1,18 +1,21 @@
-export const dynamic = 'force-dynamic'
 // app/api/posts/[postId]/comments/route.ts
+export const dynamic = 'force-dynamic'
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getCurrentUser, requireAuth } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
 import { ok, handleError } from '@/lib/api-helpers'
 import { CommentSchema } from '@/lib/schemas'
 
-export async function GET(req: NextRequest, { params }: { params: { postId: string } }) {
+type RouteContext = { params: Promise<{ postId: string }> }
+
+export async function GET(req: NextRequest, context: RouteContext) {
   try {
+    const { postId } = await context.params
     const cursor = req.nextUrl.searchParams.get('cursor')
     const limit = 20
 
     const comments = await prisma.comment.findMany({
-      where: { postId: params.postId },
+      where: { postId },
       orderBy: { createdAt: 'desc' },
       take: limit + 1,
       cursor: cursor ? { id: cursor } : undefined,
@@ -30,25 +33,24 @@ export async function GET(req: NextRequest, { params }: { params: { postId: stri
   }
 }
 
-export async function POST(req: NextRequest, { params }: { params: { postId: string } }) {
+export async function POST(req: NextRequest, context: RouteContext) {
   try {
     const me = await requireAuth()
+    const { postId } = await context.params
     const body = await req.json()
     const { content } = CommentSchema.parse(body)
 
     const [comment] = await prisma.$transaction([
       prisma.comment.create({
-        data: { postId: params.postId, authorId: me.id, content },
+        data: { postId, authorId: me.id, content },
         include: {
           author: { select: { id: true, username: true, displayName: true, avatarIpfsHash: true, isVerified: true } },
         },
       }),
-      prisma.post.update({ where: { id: params.postId }, data: { commentsCount: { increment: 1 } } }),
+      prisma.post.update({ where: { id: postId }, data: { commentsCount: { increment: 1 } } }),
     ])
 
-    // Notify post author
-    prisma.post
-      .findUnique({ where: { id: params.postId }, select: { authorId: true } })
+    prisma.post.findUnique({ where: { id: postId }, select: { authorId: true } })
       .then((post) => {
         if (post && post.authorId !== me.id) {
           return prisma.notification.create({
@@ -56,7 +58,7 @@ export async function POST(req: NextRequest, { params }: { params: { postId: str
               userId: post.authorId,
               type: 'NEW_COMMENT',
               fromUser: me.username,
-              refId: params.postId,
+              refId: postId,
               message: `${me.displayName || me.username} commented on your post`,
             },
           })
