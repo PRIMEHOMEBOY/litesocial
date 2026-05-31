@@ -4,12 +4,9 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import { ok, notFound, handleError } from '@/lib/api-helpers'
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ username: string }> }
-) {
+export async function GET(req: NextRequest, context: any) {
   try {
-    const { username } = await params
+    const username = context.params.username as string
     const me = await getCurrentUser()
     const user = await prisma.user.findUnique({
       where: { username },
@@ -46,7 +43,5 @@ export async function GET(
     }
 
     return ok({ ...user, isFollowing, isSubscribed })
-  } catch (error) {
-    return handleError(error)
-  }
+  } catch (error) { return handleError(error) }
 }

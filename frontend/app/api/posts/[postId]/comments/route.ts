@@ -1,4 +1,3 @@
-// app/api/posts/[postId]/comments/route.ts
 export const dynamic = 'force-dynamic'
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
@@ -6,11 +5,9 @@ import { requireAuth } from '@/lib/auth'
 import { ok, handleError } from '@/lib/api-helpers'
 import { CommentSchema } from '@/lib/schemas'
 
-type RouteContext = { params: Promise<{ postId: string }> }
-
-export async function GET(req: NextRequest, context: RouteContext) {
+export async function GET(req: NextRequest, context: any) {
   try {
-    const { postId } = await context.params
+    const postId = context.params.postId as string
     const cursor = req.nextUrl.searchParams.get('cursor')
     const limit = 20
 
@@ -28,15 +25,13 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
     const hasMore = comments.length > limit
     return ok({ comments: comments.slice(0, limit), nextCursor: hasMore ? comments[limit - 1]?.id : null })
-  } catch (error) {
-    return handleError(error)
-  }
+  } catch (error) { return handleError(error) }
 }
 
-export async function POST(req: NextRequest, context: RouteContext) {
+export async function POST(req: NextRequest, context: any) {
   try {
+    const postId = context.params.postId as string
     const me = await requireAuth()
-    const { postId } = await context.params
     const body = await req.json()
     const { content } = CommentSchema.parse(body)
 
@@ -55,19 +50,14 @@ export async function POST(req: NextRequest, context: RouteContext) {
         if (post && post.authorId !== me.id) {
           return prisma.notification.create({
             data: {
-              userId: post.authorId,
-              type: 'NEW_COMMENT',
-              fromUser: me.username,
-              refId: postId,
+              userId: post.authorId, type: 'NEW_COMMENT',
+              fromUser: me.username, refId: postId,
               message: `${me.displayName || me.username} commented on your post`,
             },
           })
         }
-      })
-      .catch(console.error)
+      }).catch(console.error)
 
     return ok(comment, 201)
-  } catch (error) {
-    return handleError(error)
-  }
+  } catch (error) { return handleError(error) }
 }

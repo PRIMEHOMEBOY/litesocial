@@ -4,12 +4,9 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 import { ok, handleError } from '@/lib/api-helpers'
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ postId: string }> }
-) {
+export async function POST(req: NextRequest, context: any) {
   try {
-    const { postId } = await params
+    const postId = context.params.postId as string
     const me = await requireAuth()
 
     const existing = await prisma.like.findUnique({

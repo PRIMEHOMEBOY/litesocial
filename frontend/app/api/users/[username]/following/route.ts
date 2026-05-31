@@ -5,10 +5,10 @@ import { ok, notFound, handleError } from '@/lib/api-helpers'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ username: string }> }
+  context: any
 ) {
   try {
-    const { username } = await params
+    const username = context.params.username as string
     const user = await prisma.user.findUnique({ where: { username } })
     if (!user) return notFound('User')
 
@@ -27,6 +27,6 @@ export async function GET(
       take: 100,
     })
 
-    return ok({ users: follows.map(f => f.following) })
+    return ok({ users: follows.map((f: any) => f.following) })
   } catch (e) { return handleError(e) }
 }

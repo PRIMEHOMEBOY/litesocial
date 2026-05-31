@@ -4,12 +4,9 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 import { ok, err, handleError } from '@/lib/api-helpers'
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ username: string }> }
-) {
+export async function POST(req: NextRequest, context: any) {
   try {
-    const { username } = await params
+    const username = context.params.username as string
     const me = await requireAuth()
     const target = await prisma.user.findUnique({ where: { username } })
     if (!target) return err('User not found', 404)
@@ -27,13 +24,11 @@ export async function POST(
     await prisma.follow.create({ data: { followerId: me.id, followingId: target.id } })
     await prisma.notification.create({
       data: {
-        userId: target.id,
-        type: 'NEW_FOLLOWER',
+        userId: target.id, type: 'NEW_FOLLOWER',
         fromUser: me.username,
         message: `${me.displayName || me.username} started following you`,
       },
     })
-
     return ok({ following: true })
   } catch (error) { return handleError(error) }
 }

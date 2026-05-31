@@ -4,12 +4,9 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import { ok, notFound, handleError } from '@/lib/api-helpers'
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ postId: string }> }
-) {
+export async function GET(req: NextRequest, context: any) {
   try {
-    const { postId } = await params
+    const postId = context.params.postId as string
     const me = await getCurrentUser()
 
     const post = await prisma.post.findUnique({
@@ -52,12 +49,9 @@ export async function GET(
   } catch (error) { return handleError(error) }
 }
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ postId: string }> }
-) {
+export async function DELETE(req: NextRequest, context: any) {
   try {
-    const { postId } = await params
+    const postId = context.params.postId as string
     const me = await getCurrentUser()
     if (!me) return notFound('Post')
 

@@ -4,12 +4,9 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 import { ok, handleError } from '@/lib/api-helpers'
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ creatorUsername: string }> }
-) {
+export async function GET(req: NextRequest, context: any) {
   try {
-    const { creatorUsername } = await params
+    const creatorUsername = context.params.creatorUsername as string
     const me = await requireAuth()
     const creator = await prisma.user.findUnique({ where: { username: creatorUsername } })
     if (!creator) return ok({ isSubscribed: false, status: null, expiresAt: null })
