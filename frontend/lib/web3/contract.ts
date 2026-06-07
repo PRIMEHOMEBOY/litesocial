@@ -19,7 +19,7 @@ export const LITVM_MAINNET = {
   chainId: '0x' + (1790).toString(16), // update with real LitVM chain ID
   chainName: 'LitVM',
   nativeCurrency: { name: 'Litecoin', symbol: 'LTC', decimals: 18 },
-  rpcUrls: ['https://rpc.liteforge.io'],
+  rpcUrls: ['https://liteforge.rpc.caldera.xyz/http'],
   blockExplorerUrls: ['https://explorer.liteforge.io'],
 }
 
