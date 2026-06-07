@@ -1,54 +1,35 @@
 // lib/web3/contract.ts
-// PrimeDesk smart contract integration
+import { ethers } from "ethers"
 
-import { ethers } from 'ethers'
+// ---- CONFIG ----
+export const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || ""
 
-// ─── CONFIG ─────────────────────────────────────────────────────────────────
-
-export const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || ''
-
-export const LITVM_TESTNET = {
-  chainId: '0x' + (4441).toString(16), // update with real LitVM chain ID
-  chainName: 'LitVM Testnet',
-  nativeCurrency: { name: 'Litecoin', symbol: 'LTC', decimals: 18 },
-  rpcUrls: ['https://liteforge.rpc.caldera.xyz/http'],
-  blockExplorerUrls: ['https://explorer.liteforge.io'],
+export const LITVM_NETWORK = {
+  chainId: "0x" + (4441).toString(16), // 0x115D
+  chainName: "LitVM Testnet",
+  nativeCurrency: { name: "Litecoin", symbol: "LTC", decimals: 18 },
+  rpcUrls: ["https://liteforge.rpc.caldera.xyz/http"],
+  blockExplorerUrls: ["https://explorer.liteforge.io"],
 }
 
-export const LITVM_MAINNET = {
-  chainId: '0x' + (1790).toString(16), // update with real LitVM chain ID
-  chainName: 'LitVM',
-  nativeCurrency: { name: 'Litecoin', symbol: 'LTC', decimals: 18 },
-  rpcUrls: ['https://liteforge.rpc.caldera.xyz/http'],
-  blockExplorerUrls: ['https://explorer.liteforge.io'],
-}
-
-export const NETWORK = process.env.NEXT_PUBLIC_LITVM_NETWORK === 'mainnet'
-  ? LITVM_MAINNET
-  : LITVM_TESTNET
-
-// ─── ABI ─────────────────────────────────────────────────────────────────────
-
+// ---- ABI ----
 export const PRIMEDESK_ABI = [
-  'function registerCreator(bytes32 usernameHash, uint8 tier, uint256 monthlyPrice, address payoutAddress) payable',
-  'function subscribe(bytes32 creatorHash) payable',
-  'function tip(bytes32 postIdHash, bytes32 creatorHash) payable',
-  'function withdraw(bytes32 usernameHash)',
-  'function isSubscribed(address subscriber, bytes32 creatorHash) view returns (bool, uint256)',
-  'function getCreator(bytes32 usernameHash) view returns (address, uint256, uint256, bool, uint8, uint256)',
-  'function getPostTips(bytes32 postIdHash) view returns (uint256)',
-  'function updatePrice(bytes32 usernameHash, uint256 newPrice)',
-  'function updatePayoutAddress(bytes32 usernameHash, address newAddress)',
-  'function BASIC_TIER_FEE() view returns (uint256)',
-  'function PRO_TIER_FEE() view returns (uint256)',
-  'function ELITE_TIER_FEE() view returns (uint256)',
-  'event Subscribed(address indexed subscriber, bytes32 indexed creatorHash, uint256 amount, uint256 expiresAt)',
-  'event TipSent(address indexed tipper, bytes32 indexed postIdHash, bytes32 indexed creatorHash, uint256 amount)',
-  'event Withdrawn(bytes32 indexed creatorHash, address indexed payoutAddress, uint256 amount)',
+  "function registerCreator(bytes32 usernameHash, uint256 subscriptionPrice, address payoutAddress)",
+  "function subscribe(bytes32 creatorHash) payable",
+  "function tip(bytes32 creatorHash, bytes32 postIdHash) payable",
+  "function withdraw()",
+  "function updatePrice(bytes32 usernameHash, uint256 newPrice)",
+  "function updatePayoutAddress(bytes32 usernameHash, address newAddress)",
+  "function isSubscribed(bytes32 creatorHash, address subscriber) view returns (bool)",
+  "function getCreator(bytes32 creatorHash) view returns (address, uint256, bool)",
+  "function getPendingBalance(address payoutAddress) view returns (uint256)",
+  "event CreatorRegistered(bytes32 indexed creatorHash, address payoutAddress, uint256 price)",
+  "event Subscribed(bytes32 indexed creatorHash, address indexed subscriber, uint256 amount)",
+  "event TipSent(bytes32 indexed creatorHash, bytes32 indexed postIdHash, address indexed tipper, uint256 amount)",
+  "event Withdrawn(address indexed payoutAddress, uint256 amount)",
 ]
 
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
-
+// ---- HELPERS ----
 export function hashUsername(username: string): string {
   return ethers.keccak256(ethers.toUtf8Bytes(username.toLowerCase().trim()))
 }
@@ -65,73 +46,138 @@ export function weiToLtc(wei: bigint): string {
   return ethers.formatEther(wei)
 }
 
-// ─── PROVIDER HELPERS ────────────────────────────────────────────────────────
-
+// ---- PROVIDER ----
 export async function getProvider(): Promise<ethers.BrowserProvider> {
-  if (typeof window === 'undefined') throw new Error('Not in browser')
+  if (typeof window === "undefined") throw new Error("Not in browser")
   const win = window as any
-  if (!win.ethereum) throw new Error('No Web3 wallet found. Install MetaMask or a LitVM-compatible wallet.')
+  if (!win.ethereum) throw new Error("No Web3 wallet found. Please install MetaMask.")
   return new ethers.BrowserProvider(win.ethereum)
 }
 
+// ---- SWITCH/ADD NETWORK ----
+export async function switchToLitVM(): Promise<void> {
+  const win = window as any
+  if (!win.ethereum) throw new Error("No wallet found")
+  try {
+    await win.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: LITVM_NETWORK.chainId }],
+    })
+  } catch (err: any) {
+    if (err.code === 4902) {
+      await win.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [LITVM_NETWORK],
+      })
+    } else {
+      throw err
+    }
+  }
+}
+
+// ---- CONNECT WALLET ----
+export async function connectWallet(): Promise<string> {
+  const provider = await getProvider()
+  await switchToLitVM()
+  const accounts = await provider.send("eth_requestAccounts", [])
+  if (!accounts[0]) throw new Error("No account selected")
+  return accounts[0]
+}
+
+// ---- GET WALLET ADDRESS ----
+export async function getWalletAddress(): Promise<string | null> {
+  try {
+    const provider = await getProvider()
+    const accounts = await provider.send("eth_accounts", [])
+    return accounts[0] || null
+  } catch {
+    return null
+  }
+}
+
+// ---- GET SIGNER ----
 export async function getSigner(): Promise<ethers.Signer> {
   const provider = await getProvider()
   await switchToLitVM()
   return provider.getSigner()
 }
 
+// ---- GET CONTRACT ----
 export async function getContract(withSigner = false) {
   if (withSigner) {
     const signer = await getSigner()
     return new ethers.Contract(CONTRACT_ADDRESS, PRIMEDESK_ABI, signer)
   }
-  const provider = await getProvider()
+  const provider = new ethers.JsonRpcProvider(LITVM_NETWORK.rpcUrls[0])
   return new ethers.Contract(CONTRACT_ADDRESS, PRIMEDESK_ABI, provider)
 }
 
-export async function getReadOnlyContract() {
-  const provider = new ethers.JsonRpcProvider(NETWORK.rpcUrls[0])
-  return new ethers.Contract(CONTRACT_ADDRESS, PRIMEDESK_ABI, provider)
+// ---- REGISTER CREATOR ----
+export async function registerCreator(
+  username: string,
+  subscriptionPriceLTC: string,
+  payoutAddress: string
+) {
+  const contract = await getContract(true)
+  const usernameHash = hashUsername(username)
+  const price = ltcToWei(subscriptionPriceLTC)
+  const tx = await contract.registerCreator(usernameHash, price, payoutAddress)
+  await tx.wait()
+  return tx.hash
 }
 
-// ─── CHAIN SWITCHING ─────────────────────────────────────────────────────────
+// ---- SUBSCRIBE ----
+export async function subscribeToCreator(creatorUsername: string, priceLTC: string) {
+  const contract = await getContract(true)
+  const creatorHash = hashUsername(creatorUsername)
+  const tx = await contract.subscribe(creatorHash, { value: ltcToWei(priceLTC) })
+  await tx.wait()
+  return tx.hash
+}
 
-export async function switchToLitVM(): Promise<void> {
-  const win = window as any
-  if (!win.ethereum) throw new Error('No wallet found')
+// ---- TIP ----
+export async function sendTip(creatorUsername: string, postId: string, amountLTC: string) {
+  const contract = await getContract(true)
+  const creatorHash = hashUsername(creatorUsername)
+  const postIdHash = hashPostId(postId)
+  const tx = await contract.tip(creatorHash, postIdHash, { value: ltcToWei(amountLTC) })
+  await tx.wait()
+  return tx.hash
+}
 
-  try {
-    await win.ethereum.request({
-      method: 'wallet_switchEthereumChain',
-      params: [{ chainId: NETWORK.chainId }],
-    })
-  } catch (switchError: any) {
-    // Chain not added yet — add it
-    if (switchError.code === 4902) {
-      await win.ethereum.request({
-        method: 'wallet_addEthereumChain',
-        params: [NETWORK],
-      })
-    } else {
-      throw switchError
-    }
+// ---- WITHDRAW ----
+export async function withdrawEarnings() {
+  const contract = await getContract(true)
+  const tx = await contract.withdraw()
+  await tx.wait()
+  return tx.hash
+}
+
+// ---- CHECK SUBSCRIPTION ----
+export async function checkIsSubscribed(
+  creatorUsername: string,
+  subscriberAddress: string
+): Promise<boolean> {
+  const contract = await getContract(false)
+  const creatorHash = hashUsername(creatorUsername)
+  return contract.isSubscribed(creatorHash, subscriberAddress)
+}
+
+// ---- GET CREATOR INFO ----
+export async function getCreatorInfo(creatorUsername: string) {
+  const contract = await getContract(false)
+  const creatorHash = hashUsername(creatorUsername)
+  const [payoutAddress, price, registered] = await contract.getCreator(creatorHash)
+  return {
+    payoutAddress,
+    subscriptionPrice: weiToLtc(price),
+    registered,
   }
 }
 
-export async function connectWallet(): Promise<string> {
-  const provider = await getProvider()
-  const accounts = await provider.send('eth_requestAccounts', [])
-  if (!accounts[0]) throw new Error('No account selected')
-  await switchToLitVM()
-  return accounts[0]
-}
-
-export async function getWalletAddress(): Promise<string | null> {
-  try {
-    const provider = await getProvider()
-    const accounts = await provider.send('eth_accounts', [])
-    return accounts[0] || null
-  } catch {
-    return null
-  }
+// ---- GET PENDING BALANCE ----
+export async function getPendingBalance(payoutAddress: string): Promise<string> {
+  const contract = await getContract(false)
+  const balance = await contract.getPendingBalance(payoutAddress)
+  return weiToLtc(balance)
 }
