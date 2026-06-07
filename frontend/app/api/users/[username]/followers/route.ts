@@ -1,16 +1,16 @@
-export const dynamic = 'force-dynamic'
-import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { ok, notFound, handleError } from '@/lib/api-helpers'
+export const dynamic = "force-dynamic"
+import { NextRequest } from "next/server"
+import { prisma } from "@/lib/prisma"
+import { ok, notFound, handleError } from "@/lib/api-helpers"
 
 export async function GET(
   req: NextRequest,
-  context: any
+  context: { params: Promise<{ username: string }> }
 ) {
   try {
-    const username = context.params.username as string
+    const { username } = await context.params
     const user = await prisma.user.findUnique({ where: { username } })
-    if (!user) return notFound('User')
+    if (!user) return notFound("User")
 
     const follows = await prisma.follow.findMany({
       where: { followingId: user.id },
@@ -23,7 +23,7 @@ export async function GET(
           }
         }
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: 100,
     })
 
