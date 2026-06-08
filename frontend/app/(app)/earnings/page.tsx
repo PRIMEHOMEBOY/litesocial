@@ -7,6 +7,7 @@ import { useWalletStore } from '@/store/useWalletStore'
 import { timeAgo, formatLtc } from '@/lib/utils'
 import { useEffect, useState } from 'react'
 import { Modal } from '@/components/ui/Modal'
+import { useWithdraw, useWeb3, getOnChainCreatorBalance } from '@/lib/web3/useWeb3'
 
 function StatCard({ label, value, color, mono }: { label: string; value: string; color?: string; mono?: boolean }) {
   return (
@@ -17,13 +18,27 @@ function StatCard({ label, value, color, mono }: { label: string; value: string;
   )
 }
 
-function WithdrawModal({ payoutAddress, totalEarned, onClose }: { payoutAddress: string; totalEarned: string; onClose: () => void }) {
-  const [amount, setAmount] = useState('')
-  const [step, setStep] = useState<'form' | 'done'>('form')
+function WithdrawModal({ username, onClose }: { username: string; onClose: () => void }) {
+  const { withdraw, loading, error, txHash } = useWithdraw()
+  const { address, connect } = useWeb3()
+  const [onChainBalance, setOnChainBalance] = useState<string | null>(null)
+  const [step, setStep] = useState<'ready' | 'withdrawing' | 'done' | 'error'>('ready')
 
-  const handleWithdraw = () => {
-    // Simulate withdrawal — in v2 this will trigger an actual on-chain tx
-    setStep('done')
+  useEffect(() => {
+    getOnChainCreatorBalance(username).then(setOnChainBalance)
+  }, [username])
+
+  const handleWithdraw = async () => {
+    if (!address) {
+      try { await connect() } catch { return }
+    }
+    setStep('withdrawing')
+    try {
+      await withdraw(username)
+      setStep('done')
+    } catch {
+      setStep('error')
+    }
   }
 
   if (step === 'done') return (
@@ -33,15 +48,29 @@ function WithdrawModal({ payoutAddress, totalEarned, onClose }: { payoutAddress:
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--accent-green)', marginBottom: 8 }}>
           Withdrawal Successful!
         </div>
-        <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 6, lineHeight: 1.6 }}>
-          {amount} LTC has been sent to your payout address.
-        </div>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 12, color: 'var(--text-muted)', wordBreak: 'break-all', marginBottom: 24, padding: '8px 12px', background: 'var(--bg-elevated)', borderRadius: 8, border: '1px solid var(--border)' }}>
-          {payoutAddress}
-        </div>
-        <button onClick={onClose} className="ls-btn-primary" style={{ background: 'var(--accent-green)', color: '#000' }}>
-          Done
-        </button>
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 8, lineHeight: 1.6 }}>
+          Your LTC has been sent to your payout address on LitVM.
+        </p>
+        {txHash && (
+          <a href={`https://explorer.liteforge.io/tx/${txHash}`} target="_blank" rel="noopener noreferrer"
+            style={{ fontSize: 12, color: 'var(--accent-blue-lt)', fontFamily: 'var(--font-display)', wordBreak: 'break-all', display: 'block', marginBottom: 20 }}>
+            TX: {txHash.slice(0, 24)}…
+          </a>
+        )}
+        <button onClick={onClose} className="ls-btn-primary" style={{ background: 'var(--accent-green)', color: '#000' }}>Done</button>
+      </div>
+    </Modal>
+  )
+
+  if (step === 'error') return (
+    <Modal title="Withdrawal Failed" onClose={onClose}>
+      <div style={{ textAlign: 'center', padding: '24px 0' }}>
+        <div style={{ fontSize: 48, marginBottom: 12 }}>❌</div>
+        <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>Transaction Failed</div>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20 }}>
+          {error || 'Make sure your wallet is connected to LitVM and try again.'}
+        </p>
+        <button onClick={() => setStep('ready')} className="ls-btn-primary">Try Again</button>
       </div>
     </Modal>
   )
@@ -50,56 +79,55 @@ function WithdrawModal({ payoutAddress, totalEarned, onClose }: { payoutAddress:
     <Modal title="Withdraw Earnings" onClose={onClose}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {/* Balance info */}
-        <div style={{ padding: '14px 16px', borderRadius: 12, background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.2)' }}>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>Available balance</div>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--accent-green)' }}>
-            {parseFloat(totalEarned || '0').toFixed(4)} LTC
+        {/* On-chain balance */}
+        <div style={{ padding: '16px', borderRadius: 12, background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.2)', textAlign: 'center' }}>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>Available on-chain balance</div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: 'var(--accent-green)' }}>
+            {onChainBalance !== null ? `${onChainBalance} LTC` : 'Loading…'}
           </div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Smart contract balance on LitVM</div>
         </div>
 
-        {/* Amount input */}
-        <div>
-          <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6, fontWeight: 500 }}>Amount to withdraw (LTC)</div>
-          <input
-            className="ls-input"
-            value={amount}
-            onChange={e => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
-            placeholder="0.0000"
-            style={{ fontFamily: 'var(--font-display)', fontSize: 22, textAlign: 'center' }}
-          />
-          <button
-            onClick={() => setAmount(parseFloat(totalEarned || '0').toFixed(4))}
-            style={{ marginTop: 6, fontSize: 11, color: 'var(--accent-blue-lt)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-            Withdraw max
-          </button>
-        </div>
+        {/* How it works */}
+        <ul style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {[
+            'Withdraws all your pending earnings from the smart contract',
+            'Sends directly to your registered payout address',
+            '0% platform fee — you keep everything',
+            'Transaction confirmed on LitVM blockchain',
+          ].map(f => (
+            <li key={f} style={{ display: 'flex', gap: 8, fontSize: 13, color: 'var(--text-secondary)', alignItems: 'flex-start', listStyle: 'none' }}>
+              <span style={{ color: 'var(--accent-green)', flexShrink: 0 }}>✓</span>{f}
+            </li>
+          ))}
+        </ul>
 
-        {/* Destination */}
-        <div>
-          <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6, fontWeight: 500 }}>To address</div>
-          {payoutAddress ? (
-            <div style={{ padding: '10px 14px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border)', fontFamily: 'var(--font-display)', fontSize: 12, color: 'var(--accent-green)', wordBreak: 'break-all' }}>
-              {payoutAddress}
-            </div>
-          ) : (
-            <div style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.25)', fontSize: 13, color: 'var(--accent-red)' }}>
-              ⚠️ No payout address set. Go to Settings → Creator Setup to add one.
-            </div>
-          )}
-        </div>
+        {/* Wallet status */}
+        {address ? (
+          <div style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.2)', fontSize: 12, color: 'var(--accent-green)', fontFamily: 'var(--font-display)' }}>
+            ✓ Connected: {address.slice(0, 8)}…{address.slice(-6)}
+          </div>
+        ) : (
+          <div style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(247,147,26,0.06)', border: '1px solid rgba(247,147,26,0.2)', fontSize: 12, color: 'var(--accent-orange)' }}>
+            ⚠️ Connect your LitVM wallet to withdraw
+          </div>
+        )}
 
-        {/* Withdraw button */}
-        <button
-          onClick={handleWithdraw}
-          disabled={!payoutAddress || !amount || parseFloat(amount) <= 0}
+        <button onClick={handleWithdraw}
+          disabled={loading || step === 'withdrawing' || onChainBalance === '0.0' || onChainBalance === null}
           className="ls-btn-primary"
-          style={{ background: 'var(--accent-green)', color: '#000', fontSize: 16, fontWeight: 700 }}>
-          💸 Withdraw {amount ? `${amount} LTC` : ''}
+          style={{ background: 'var(--accent-green)', color: '#000', opacity: loading ? 0.7 : 1 }}>
+          {loading || step === 'withdrawing'
+            ? <span style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+                <span style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(0,0,0,0.2)', borderTopColor: '#000', animation: 'spin 700ms linear infinite', display: 'inline-block' }} />
+                Withdrawing on-chain…
+              </span>
+            : address ? '💸 Withdraw to Payout Address' : '🔗 Connect Wallet & Withdraw'
+          }
         </button>
 
         <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.6 }}>
-          Automated on-chain withdrawals coming in v2. Funds go directly to your payout address.
+          Requires your payout wallet connected to LitVM. Only the registered payout address can withdraw.
         </div>
       </div>
     </Modal>
@@ -137,8 +165,8 @@ export default function EarningsPage() {
 
   const monthly = data?.monthlyRevenue || []
   const maxVal = Math.max(...monthly.map((m: any) => m.ltc || 0), 0.01)
-  const totalUsd = ltcPrice ? (parseFloat(data?.totalEarned || 0) * ltcPrice).toFixed(2) : '—'
   const totalEarned = data?.totalEarned || '0'
+  const totalUsd = ltcPrice ? (parseFloat(totalEarned) * ltcPrice).toFixed(2) : '—'
 
   return (
     <>
@@ -159,6 +187,11 @@ export default function EarningsPage() {
               <StatCard label="≈ USD Value" value={`$${totalUsd}`} />
               <StatCard label="Active Subscribers" value={String(data?.activeSubscribers || 0)} color="var(--accent-blue-lt)" />
               <StatCard label="Tips Received (LTC)" value={parseFloat(data?.tipsTotal || 0).toFixed(4)} color="var(--accent-orange)" mono />
+            </div>
+
+            {/* On-chain note */}
+            <div style={{ padding: '12px 14px', borderRadius: 12, background: 'rgba(52,93,157,0.08)', border: '1px solid rgba(52,93,157,0.2)', fontSize: 12, color: 'var(--accent-blue-lt)', lineHeight: 1.7 }}>
+              ⛓️ Earnings are held in the PrimeDesk smart contract on LitVM. Withdraw at any time — funds go directly to your payout address with 0% fee.
             </div>
 
             {(user as any)?.payoutAddress && (
@@ -208,12 +241,8 @@ export default function EarningsPage() {
         )}
       </div>
 
-      {showWithdraw && (
-        <WithdrawModal
-          payoutAddress={(user as any)?.payoutAddress || ''}
-          totalEarned={totalEarned}
-          onClose={() => setShowWithdraw(false)}
-        />
+      {showWithdraw && user && (
+        <WithdrawModal username={user.username} onClose={() => setShowWithdraw(false)} />
       )}
     </>
   )
